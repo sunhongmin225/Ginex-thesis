@@ -66,6 +66,32 @@ torch.cuda.set_device(device)
 model = SAGE(num_features, args.num_hiddens, num_classes, num_layers=len(sizes))
 model = model.to(device)
 
+inspect_start = torch.cuda.Event(enable_timing=True)
+inspect_end = torch.cuda.Event(enable_timing=True)
+switch_start = torch.cuda.Event(enable_timing=True)
+switch_end = torch.cuda.Event(enable_timing=True)
+sampling_start = torch.cuda.Event(enable_timing=True)
+sampling_end = torch.cuda.Event(enable_timing=True)
+gather_start = torch.cuda.Event(enable_timing=True)
+gather_end = torch.cuda.Event(enable_timing=True)
+transfer_start = torch.cuda.Event(enable_timing=True)
+transfer_end = torch.cuda.Event(enable_timing=True)
+forward_start = torch.cuda.Event(enable_timing=True)
+forward_end = torch.cuda.Event(enable_timing=True)
+backward_start = torch.cuda.Event(enable_timing=True)
+backward_end = torch.cuda.Event(enable_timing=True)
+cache_start = torch.cuda.Event(enable_timing=True)
+cache_end = torch.cuda.Event(enable_timing=True)
+free_start = torch.cuda.Event(enable_timing=True)
+free_end = torch.cuda.Event(enable_timing=True)
+
+sampling_times = []
+gather_times = []
+cache_times = []
+transfer_times = []
+forward_times = []
+backward_times = []
+free_times = []
 
 def inspect(i, last, mode='train'):
     # Same effect of `sysctl -w vm.drop_caches=1`
@@ -202,6 +228,7 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
         batch_size = args.batch_size
         if idx == 0:
             # Sample
+            sampling_start.record()
             q_value = q[idx % args.trace_load_num_threads].get()
             if q_value:
                 n_id, adjs, (in_indices, in_positions, out_indices) = q_value
@@ -212,26 +239,36 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
 
                 in_positions_q.put(in_positions)
                 out_indices_q.put(out_indices)
+            sampling_end.record()
 
             # Gather
+            gather_start.record()
             batch_inputs = gather_ginex(features, n_id, num_features, cache)
             batch_labels = labels[n_id[:batch_size]]
+            gather_end.record()
 
             # Cache
+            cache_start.record()
             cache.update(batch_inputs, in_indices, in_positions, out_indices)
+            cache_end.record()
 
         if idx != 0:
             # Gather
+            gather_start.record()
             (batch_inputs, batch_labels) = gather_q.get()
+            gather_end.record()
 
             # Cache
+            cache_start.record()
             in_indices = in_indices_q.get()
             in_positions = in_positions_q.get()
             out_indices = out_indices_q.get()
             cache.update(batch_inputs, in_indices, in_positions, out_indices)
+            cache_end.record()
 
         if idx != num_iter-1:
             # Sample
+            sampling_start.record()
             q_value = q[(idx + 1) % args.trace_load_num_threads].get()
             if q_value:
                 n_id, adjs, (in_indices, in_positions, out_indices) = q_value
@@ -241,28 +278,38 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
                 in_indices_q.put(in_indices)
                 in_positions_q.put(in_positions)
                 out_indices_q.put(out_indices)
+            sampling_end.record()
 
             # Gather
+            # gather_start.record()
             gather_loader = threading.Thread(target=gather, args=(gather_q, n_id, cache, batch_size), daemon=True)
             gather_loader.start()
+            # gather_end.record()
 
         # Transfer
+        transfer_start.record()
         batch_inputs_cuda = batch_inputs.to(device)
         batch_labels_cuda = batch_labels.to(device)
         adjs_host = adjs_q.get()
         adjs = [adj.to(device) for adj in adjs_host]
+        transfer_end.record()
 
         # Forward
+        forward_start.record()
         out = model(batch_inputs_cuda, adjs)
         loss = F.nll_loss(out, batch_labels_cuda.long())
+        forward_end.record()
 
         # Backward
+        backward_start.record()
         if mode == 'train':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        backward_end.record()
 
         # Free
+        free_start.record()
         total_loss += float(loss)
         total_correct += int(out.argmax(dim=-1).eq(batch_labels_cuda.long()).sum())
         n_id = n_id_q.get()
@@ -276,7 +323,34 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
         del(out_indices)
         del(adjs_host)
         tensor_free(batch_inputs)
+        free_end.record()
+
         pbar.update(batch_size)
+
+        torch.cuda.synchronize()
+        sampling_time = sampling_start.elapsed_time(sampling_end)
+        gather_time = gather_start.elapsed_time(gather_end)
+        cache_time = cache_start.elapsed_time(cache_end)
+        transfer_time = transfer_start.elapsed_time(transfer_end)
+        forward_time = forward_start.elapsed_time(forward_end)
+        backward_time = backward_start.elapsed_time(backward_end)
+        free_time = free_start.elapsed_time(free_end)
+        if idx % 1000 == 0:
+            print (idx)
+            print('sampling: ', sampling_time)
+            print('gather: ', gather_time)
+            print('cache: ', cache_time)
+            print('transfer: ', transfer_time)
+            print('forward: ', forward_time)
+            print('backward: ', backward_time)
+            print('free: ', free_time)
+        sampling_times.append(sampling_time)
+        gather_times.append(gather_time)
+        cache_times.append(cache_time)
+        transfer_times.append(transfer_time)
+        forward_times.append(forward_time)
+        backward_times.append(backward_time)
+        free_times.append(free_time)
 
     return total_loss, total_correct
 
@@ -297,11 +371,22 @@ def train(epoch):
         if args.verbose:
             tqdm.write ('Running {}th superbatch of total {} superbatches'.format(i, num_sb))
 
+        sampling_times.clear()
+        gather_times.clear()
+        cache_times.clear()
+        transfer_times.clear()
+        forward_times.clear()
+        backward_times.clear()
+        free_times.clear()
+
         # Superbatch sample
         if args.verbose:
             tqdm.write ('Step 1: Superbatch Sample')
-        cache, initial_cache_indices  = inspect(i, last=(i==num_sb), mode='train')
+        inspect_start.record()
+        cache, initial_cache_indices = inspect(i, last=(i==num_sb), mode='train')
+        inspect_end.record()
         torch.cuda.synchronize()
+        inspect_time = inspect_start.elapsed_time(inspect_end)
         if args.verbose:
             tqdm.write ('Step 1: Done')
 
@@ -311,8 +396,11 @@ def train(epoch):
         # Switch
         if args.verbose:
             tqdm.write ('Step 2: Switch')
+        switch_start.record()
         cache = switch(cache, initial_cache_indices)
+        switch_end.record()
         torch.cuda.synchronize()
+        switch_time = switch_start.elapsed_time(switch_end)
         if args.verbose:
             tqdm.write ('Step 2: Done')
 
@@ -322,6 +410,17 @@ def train(epoch):
         total_loss, total_correct = execute(i, cache, pbar, total_loss, total_correct, last=(i==num_sb), mode='train')
         if args.verbose:
             tqdm.write ('Step 3: Done')
+
+        print ('Total stat')
+        print ('{:.4f}'.format(inspect_time))
+        print ('{:.4f}'.format(switch_time))
+        print ('{:.4f}'.format(sum(sampling_times)))
+        print ('{:.4f}'.format(sum(gather_times)))
+        print ('{:.4f}'.format(sum(cache_times)))
+        print ('{:.4f}'.format(sum(transfer_times)))
+        print ('{:.4f}'.format(sum(forward_times)))
+        print ('{:.4f}'.format(sum(backward_times)))
+        print ('{:.4f}'.format(sum(free_times)))
 
         # Delete obsolete runtime files
         delete_trace(i)

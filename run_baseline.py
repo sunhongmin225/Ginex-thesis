@@ -50,6 +50,25 @@ torch.cuda.set_device(device)
 model = SAGE(num_features, args.num_hiddens, num_classes, num_layers=len(sizes))
 model = model.to(device)
 
+sampling_start = torch.cuda.Event(enable_timing=True)
+sampling_end = torch.cuda.Event(enable_timing=True)
+gather_start = torch.cuda.Event(enable_timing=True)
+gather_end = torch.cuda.Event(enable_timing=True)
+transfer_start = torch.cuda.Event(enable_timing=True)
+transfer_end = torch.cuda.Event(enable_timing=True)
+forward_start = torch.cuda.Event(enable_timing=True)
+forward_end = torch.cuda.Event(enable_timing=True)
+backward_start = torch.cuda.Event(enable_timing=True)
+backward_end = torch.cuda.Event(enable_timing=True)
+free_start = torch.cuda.Event(enable_timing=True)
+free_end = torch.cuda.Event(enable_timing=True)
+
+sampling_times = []
+gather_times = []
+transfer_times = []
+forward_times = []
+backward_times = []
+free_times = []
 
 def gather(gather_q, ids, batch_size):
     batch_inputs = gather_mmap(x, ids)
@@ -70,40 +89,58 @@ def train(epoch):
     gather_q = Queue(maxsize=1)
 
     # Sample
+    sampling_start.record()
     for step, (batch_size, ids, adjs) in enumerate(train_loader):
         if step == 0:
             adjs_q.put(adjs)
+            sampling_end.record()
 
             # Gather
+            gather_start.record()
             gather_loader = threading.Thread(target=gather, args=(gather_q, ids, batch_size), daemon=True)
             gather_loader.start()
+            gather_end.record()
 
+            sampling_start.record()
             continue
 
         adjs_q.put(adjs)
+        sampling_end.record()
 
         # Gather
         # Fetch gather results the queue & launch new thread for gather for the next iteration
+        gather_start.record()
         (batch_inputs, batch_labels) = gather_q.get()
+        # gather_end.record()
+
+        # gather_start.record()
         gather_loader = threading.Thread(target=gather, args=(gather_q, ids, batch_size), daemon=True)
         gather_loader.start()
+        gather_end.record()
 
         # Transfer
+        transfer_start.record()
         batch_inputs_cuda = batch_inputs.to(device)
         batch_labels_cuda = batch_labels.to(device)
         adjs = adjs_q.get()
         adjs_cuda = [adj.to(device) for adj in adjs]
+        transfer_end.record()
 
         # Forward
+        forward_start.record()
         out = model(batch_inputs_cuda, adjs_cuda)
         loss = F.nll_loss(out, batch_labels_cuda.long())
+        forward_end.record()
 
         # Backward
+        backward_start.record()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        backward_end.record()
 
         # Free
+        free_start.record()
         total_loss += float(loss)
         total_correct += int(out.argmax(dim=-1).eq(batch_labels_cuda.long()).sum())
         tensor_free(batch_inputs)
@@ -112,7 +149,33 @@ def train(epoch):
         del(adjs)
         del(batch_labels_cuda)
         torch.cuda.empty_cache()
+        free_end.record()
+
         pbar.update(batch_size)
+
+        torch.cuda.synchronize()
+        sampling_time = sampling_start.elapsed_time(sampling_end)
+        gather_time = gather_start.elapsed_time(gather_end)
+        transfer_time = transfer_start.elapsed_time(transfer_end)
+        forward_time = forward_start.elapsed_time(forward_end)
+        backward_time = backward_start.elapsed_time(backward_end)
+        free_time = free_start.elapsed_time(free_end)
+        if step % 1000 == 0:
+            print(step)
+            print('sampling: ', sampling_time)
+            print('gather: ', gather_time)
+            print('transfer: ', transfer_time)
+            print('forward: ', forward_time)
+            print('backward: ', backward_time)
+            print('free: ', free_time)
+        sampling_times.append(sampling_time)
+        gather_times.append(gather_time)
+        transfer_times.append(transfer_time)
+        forward_times.append(forward_time)
+        backward_times.append(backward_time)
+        free_times.append(free_time)
+
+        sampling_start.record()
 
     pbar.close()
 
@@ -180,6 +243,27 @@ if __name__=='__main__':
         start = time.time()
         loss, acc = train(epoch)
         end = time.time()
+
+        print ('Total stat')
+        # print ('{:.4f}'.format(sum(sampling_times)/len(sampling_times)))
+        # print ('{:.4f}'.format(sum(gather_times)/len(gather_times)))
+        # print ('{:.4f}'.format(sum(transfer_times)/len(transfer_times)))
+        # print ('{:.4f}'.format(sum(forward_times)/len(forward_times)))
+        # print ('{:.4f}'.format(sum(backward_times)/len(backward_times)))
+        print ('{:.4f}'.format(sum(sampling_times)))
+        print ('{:.4f}'.format(sum(gather_times)))
+        print ('{:.4f}'.format(sum(transfer_times)))
+        print ('{:.4f}'.format(sum(forward_times)))
+        print ('{:.4f}'.format(sum(backward_times)))
+        print ('{:.4f}'.format(sum(free_times)))
+
+        sampling_times.clear()
+        gather_times.clear()
+        transfer_times.clear()
+        forward_times.clear()
+        backward_times.clear()
+        free_times.clear()
+
         print(f'Epoch {epoch:02d}, Loss: {loss:.4f}, Approx. Train: {acc:.4f}')
         print('Epoch time: {:.4f} ms'.format((end - start) * 1000))
 
