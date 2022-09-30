@@ -109,7 +109,7 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
 
             self.num_hit += num_hit
             self.num_miss += num_miss
-            print('arcmsh::self.num_hit =', self.num_hit, ', self.num_miss =', self.num_miss, ', hit ratio =', self.num_hit / (self.num_hit + self.num_miss))
+            # print('arcmsh::self.num_hit =', self.num_hit, ', self.num_miss =', self.num_miss, ', hit ratio =', self.num_hit / (self.num_hit + self.num_miss))
             e_id = adj_t.storage.value()
             size = adj_t.sparse_sizes()[::-1]
             adjs.append(Adj(adj_t, e_id, size))
