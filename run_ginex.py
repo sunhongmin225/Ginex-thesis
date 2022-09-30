@@ -26,7 +26,7 @@ argparser.add_argument('--num-hiddens', type=int, default=256)
 argparser.add_argument('--dataset', type=str, default='ogbn-papers100M')
 argparser.add_argument('--exp-name', type=str, default=None)
 argparser.add_argument('--sizes', type=str, default='10,10,10')
-argparser.add_argument('--sb-size', type=int, default='1000')
+argparser.add_argument('--sb-size', type=int, default=1000)
 argparser.add_argument('--feature-cache-size', type=float, default=500000000)
 argparser.add_argument('--trace-load-num-threads', type=int, default=4)
 argparser.add_argument('--neigh-cache-size', type=int, default=45000000000)
@@ -93,6 +93,7 @@ forward_times = []
 backward_times = []
 free_times = []
 
+
 def inspect(i, last, mode='train'):
     # Same effect of `sysctl -w vm.drop_caches=1`
     # Requires sudo
@@ -105,6 +106,9 @@ def inspect(i, last, mode='train'):
         node_idx = dataset.val_idx
     elif mode == 'test':
         node_idx = dataset.test_idx
+
+    num_hit = 0
+    num_miss = 0
 
     # No changeset precomputation when i == 0
     if i != 0:
@@ -135,7 +139,7 @@ def inspect(i, last, mode='train'):
 
     start_idx = i * args.batch_size * args.sb_size 
     end_idx = min((i+1) * args.batch_size * args.sb_size, node_idx.numel())
-    loader = GinexNeighborSampler(indptr, dataset.indices_path, args.exp_name, i, node_idx=node_idx[start_idx:end_idx],
+    loader = GinexNeighborSampler(indptr, dataset.indices_path, num_hit, num_miss, args.exp_name, i, node_idx=node_idx[start_idx:end_idx],
                                        sizes=sizes, num_nodes = num_nodes,
                                        cache_data = neighbor_cache, address_table = neighbor_cachetable,
                                        batch_size=args.batch_size,
@@ -390,6 +394,8 @@ def train(epoch):
         if args.verbose:
             tqdm.write ('Step 1: Done')
 
+        print('inspect_time =', inspect_time)
+
         if i == 0:
             continue
 
@@ -424,6 +430,8 @@ def train(epoch):
 
         # Delete obsolete runtime files
         delete_trace(i)
+
+        break
 
     pbar.close()
 
