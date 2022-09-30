@@ -9,12 +9,12 @@ from lib.cpp_extension.wrapper import sample
 
 
 def sample_adj_ginex(rowptr, col, subset, num_neighbors, replace, cache_data=None, address_table=None):
-    rowptr, col, n_id, indptr = sample.sample_adj_ginex(                                                   
+    rowptr, col, n_id, indptr, num_hit, num_miss = sample.sample_adj_ginex(
         rowptr, col, subset, cache_data, address_table, num_neighbors, replace)                                 
     out = SparseTensor(rowptr=rowptr, row=None, col=col,                                                 
                        sparse_sizes=(subset.size(0), n_id.size(0)),                                      
                        is_sorted=True)                                                                   
-    return out, n_id                                                                                     
+    return out, n_id, num_hit, num_miss
 
 
 def sample_adj_mmap(rowptr, col, subset: torch.Tensor, num_neighbors: int, replace: bool = False):
@@ -60,7 +60,7 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
             `torch.utils.data.DataLoader`, such as `batch_size`,
             `shuffle`, `drop_last`m `num_workers`.
     '''
-    def __init__(self, indptr, indices, exp_name, sb,
+    def __init__(self, indptr, indices, num_hit, num_miss, exp_name, sb,
                  sizes: List[int], node_idx: Tensor,
                  cache_data = None, address_table = None,
                  num_nodes: Optional[int] = None,
@@ -77,6 +77,8 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
         self.sb = sb
         self.node_idx = node_idx
         self.num_nodes = num_nodes
+        self.num_hit = num_hit
+        self.num_miss = num_miss
 
         self.cache_data = cache_data
         self.address_table = address_table
@@ -103,8 +105,11 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
         adjs = []
         n_id = batch
         for size in self.sizes:
-            adj_t, n_id = sample_adj_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
-            
+            adj_t, n_id, num_hit, num_miss = sample_adj_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
+
+            self.num_hit += num_hit
+            self.num_miss += num_miss
+            print('arcmsh::self.num_hit =', self.num_hit, ', self.num_miss =', self.num_miss, ', hit ratio =', self.num_hit / (self.num_hit + self.num_miss))
             e_id = adj_t.storage.value()
             size = adj_t.sparse_sizes()[::-1]
             adjs.append(Adj(adj_t, e_id, size))

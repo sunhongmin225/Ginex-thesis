@@ -8,6 +8,7 @@
 #include <cstring>
 #include <inttypes.h>
 #include <omp.h>
+#include <stdio.h>
 #define ALIGNMENT 4096
 
 // return start index of buffer
@@ -31,7 +32,7 @@ std::tuple<int64_t*, int64_t*, int64_t> get_new_neighbor_buffer(int64_t row_coun
     return std::make_tuple(neighbor_buffer, aligned_neighbor_buffer, size/sizeof(int64_t));
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, int, int>
 sample_adj_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx, 
                   torch::Tensor cache, torch::Tensor cache_table,
                   int64_t num_neighbors, bool replace) {
@@ -58,6 +59,9 @@ sample_adj_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx,
   std::vector<std::vector<std::tuple<int64_t, int64_t>>> cols; // col, e_id
   std::vector<int64_t> n_ids;
   std::unordered_map<int64_t, int64_t> n_id_map;
+
+  int num_hit = 0;
+  int num_miss = 0;
 
   int64_t i;
   for (int64_t n = 0; n < idx.numel(); n++) {
@@ -166,6 +170,7 @@ sample_adj_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx,
       n = idx_data[i];
       cache_entry = cache_table_data[n];
       if (cache_entry >= 0){
+          num_hit++;
           row_count = cache_data[cache_entry];
           if (row_count > 0){
               std::unordered_set<int64_t> perm;
@@ -194,6 +199,7 @@ sample_adj_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx,
           }
       }
       else {
+          num_miss++;
           row_start = rowptr_data[n], row_end = rowptr_data[n + 1];
           row_count = row_end - row_start;
 
@@ -260,7 +266,10 @@ sample_adj_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx,
   free(neighbor_buffer);
   close(col_fd);
 
-  return std::make_tuple(out_rowptr, out_col, out_n_id, out_e_id);
+  // float hit_ratio = (float) num_hit / (float) (num_hit + num_miss);
+  // printf("arcmsh::num_hit = %d, num_miss = %d, hit_ratio = %f\n", num_hit, num_miss, hit_ratio);
+
+  return std::make_tuple(out_rowptr, out_col, out_n_id, out_e_id, num_hit, num_miss);
 }
 
 torch::Tensor
