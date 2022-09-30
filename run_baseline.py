@@ -18,6 +18,7 @@ argparser = argparse.ArgumentParser()
 argparser.add_argument('--gpu', type=int, default=0)
 argparser.add_argument('--num-epochs', type=int, default=10)
 argparser.add_argument('--batch-size', type=int, default=1000)
+argparser.add_argument('--sb-size', type=int, default=1000)
 argparser.add_argument('--num-workers', type=int, default=32)
 argparser.add_argument('--num-hiddens', type=int, default=256)
 argparser.add_argument('--dataset', type=str, default='ogbn-papers100M')
@@ -176,6 +177,9 @@ def train(epoch):
         free_times.append(free_time)
 
         sampling_start.record()
+
+        if step == args.sb_size:
+            break
 
     pbar.close()
 
