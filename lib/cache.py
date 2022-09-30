@@ -7,6 +7,7 @@ import numpy as np
 import json
 import os
 from tqdm import tqdm
+import time
 
 
 def save(i, in_indices, in_indices_, out_indices, exp_name, sb):
@@ -87,6 +88,8 @@ class FeatureCache:
     # Two passes over ids files to construct data structures for cache state simulation and
     # figure out the initial cache indices.
     def pass_1_and_2(self):
+        start = time.time()
+
         if self.verbose:
             tqdm.write('Loading ids...')
         num_threads = 16
@@ -148,11 +151,16 @@ class FeatureCache:
         if self.verbose:
             tqdm.write('Done!')
 
+        end = time.time()
+        print('pass_1_and_2 time =', end - start)
+
         return iterptr, iters, initial_cache_indices
 
 
     # The last pass over ids files to simulate the cache state.
     def pass_3(self, iterptr, iters, initial_cache_indices):
+        start = time.time()
+
         if self.verbose:
             tqdm.write('Pass 3: Computing changesets...')
 
@@ -274,6 +282,9 @@ class FeatureCache:
 
         if self.verbose:
             tqdm.write('Done!')
+
+        end = time.time()
+        print('pass_3 time =', end - start)
 
         return
 
