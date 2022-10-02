@@ -35,6 +35,7 @@ def save_neighbor_cache():
     cache_tbl_filename = str(dataset_path) + '/nctbl_size_' + str(args.neigh_cache_size)
     neighbor_cache.save(neighbor_cache.address_table.numpy(), cache_tbl_filename)
     print('Done!')
+    # import pdb; pdb.set_trace()
 
 
 # Save neighbor cache
