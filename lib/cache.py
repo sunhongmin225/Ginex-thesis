@@ -123,6 +123,7 @@ class FeatureCache:
                     initial_cache_indices = torch.cat([initial_cache_indices, to_cache])
 
             frq[n_id] += 1
+            # import pdb; pdb.set_trace()
         if self.verbose:
             tqdm.write('Done!')
 
@@ -143,6 +144,8 @@ class FeatureCache:
             tmp = iterptr[n_id_cuda+1]
             iters[tmp] = i; del(tmp)
             iterptr[n_id_cuda+1] += 1; del(n_id_cuda)
+            # import pdb; pdb.set_trace()
+
         iters[iterptr[1:]] |= msb
         iterptr = iterptr[:-1]
         iterptr[0] = 0
@@ -183,8 +186,11 @@ class FeatureCache:
         #   absolute indices
 
         cache_table = torch.zeros(self.num_nodes, dtype=torch.int8, device='cuda')
-        cache_table[initial_cache_indices] += 1; del(initial_cache_indices)
+        cache_table[initial_cache_indices] += 1 # bit 0
+        del(initial_cache_indices)
         map_table = torch.full((self.num_nodes,), -1, dtype=torch.int32, device='cuda')
+
+        # import pdb; pdb.set_trace()
         
         msb = (torch.tensor([1], dtype=torch.int16) << 15).cuda()
 
@@ -208,20 +214,30 @@ class FeatureCache:
 
             # Map table update
             map_table[n_id_cuda] = torch.arange(n_id_cuda.numel(), dtype=torch.int32, device='cuda')
+
+            # import pdb; pdb.set_trace()
             
             # Update iterptr
             iterptr[n_id_cuda] += 1
-            last_access = n_id_cuda[(iters[iterptr[n_id_cuda]] < 0)]
-            iterptr[last_access] = iters.numel()-1; del(last_access)
+            last_access = n_id_cuda[(iters[iterptr[n_id_cuda]] < 0)] # when msb is set
+            iterptr[last_access] = iters.numel()-1
+            del(last_access)
+
+            # import pdb; pdb.set_trace()
 
             # Get candidates
             # candidates = union(current cache indices, incoming indices)
-            cache_table[n_id_cuda] += 2
-            candidates = (cache_table > 0).nonzero().squeeze(); del(n_id_cuda)
+            cache_table[n_id_cuda] += 2 # bit 1
+            candidates = (cache_table > 0).nonzero().squeeze()
+            del(n_id_cuda)
+
+            # import pdb; pdb.set_trace()
 
             # Get next access iterations of candidates
             next_access_iters = iters[iterptr[candidates]]
             next_access_iters.bitwise_and_(~msb)
+
+            # import pdb; pdb.set_trace()
             
             # Find num_entries elements in candidates with the smallest next access
             # iteration by incrementally tracking threshold
@@ -251,17 +267,17 @@ class FeatureCache:
                 elif (curr_status): threshold -= 1
                 else: threshold += 1
             
-            cache_table[candidates[next_access_iters <= threshold]] |= 4
-            cache_table[candidates[next_access_iters == (threshold+1)][:num_remains]] |= 4
+            cache_table[candidates[next_access_iters <= threshold]] |= 4 # bit 2
+            cache_table[candidates[next_access_iters == (threshold+1)][:num_remains]] |= 4 # bit 2
             del(candidates)
             del(next_access_iters)
            
             # in_indices: indices to newly insert into cache
             # in_positions: relative positions of nodes in in_indices within batch input
             # out_indices: indices to evict from cache
-            in_indices = (cache_table == 2+4).nonzero().squeeze()
+            in_indices = (cache_table == 2+4).nonzero().squeeze() # bit 1, 2
             in_positions = map_table[in_indices]
-            out_indices = ((cache_table == 1) | (cache_table == 3)).nonzero().squeeze()
+            out_indices = ((cache_table == 1) | (cache_table == 3)).nonzero().squeeze() # bit 0 || bit 0, 1
 
             # Configure cache table & map table for the next iteration
             cache_table >>= 2
