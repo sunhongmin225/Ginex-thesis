@@ -117,7 +117,10 @@ def inspect(i, last, mode='train'):
         # Pass 1 and 2 are executed before starting sb sample.
         # We overlap only the pass 3 of changeset precomputation, 
         # which is the most time consuming part, with sb sample.
+        start = time.time()
         iterptr, iters, initial_cache_indices = cache.pass_1_and_2()
+        end = time.time()
+        print('[run_ginex.py] pass_1_and_2 time =', end - start)
         
         # Only changset precomputation at the last superbatch in epoch
         if last:
@@ -145,9 +148,32 @@ def inspect(i, last, mode='train'):
                                        batch_size=args.batch_size,
                                        shuffle=False, num_workers=args.num_workers, prefetch_factor=1<<20)
 
+    sb_sample_start = time.time()
     for step, _ in enumerate(loader):
         if i != 0 and step == 0:
+            start = time.time()
             cache.pass_3(iterptr, iters, initial_cache_indices)
+            end = time.time()
+            print('[run_ginex.py] pass_3 time =', end - start)
+    sb_sample_end = time.time()
+    print('[run_ginex.py] sb_sample time =', sb_sample_end - sb_sample_start)
+
+    # sb_sample_start = time.time()
+    # for step, _ in enumerate(loader):
+    #     continue
+    #     # if i != 0 and step == 0:
+    #         # start = time.time()
+    #         # cache.pass_3(iterptr, iters, initial_cache_indices)
+    #         # end = time.time()
+    #         # print('[run_ginex.py] pass_3 time =', end - start)
+    # sb_sample_end = time.time()
+    # print('[run_ginex.py] sb_sample time =', sb_sample_end - sb_sample_start)
+
+    # if i != 0:
+    #     start = time.time()
+    #     cache.pass_3(iterptr, iters, initial_cache_indices)
+    #     end = time.time()
+    #     print('[run_ginex.py] pass_3 time =', end - start)
 
     tensor_free(neighbor_cache)
     tensor_free(neighbor_cachetable)
@@ -398,6 +424,10 @@ def train(epoch):
 
         if i == 0:
             continue
+
+        if i == 1:
+            delete_trace(i)
+            break
 
         # Switch
         if args.verbose:
