@@ -8,6 +8,7 @@ import json
 import os
 from tqdm import tqdm
 import time
+import math
 
 
 def save(i, in_indices, in_indices_, out_indices, exp_name, sb):
@@ -50,11 +51,12 @@ class FeatureCache:
         verbose (bool): if set, the detailed processing information is displayed
 
     '''
-    def __init__(self, size, effective_sb_size, num_nodes, mmapped_features, 
+    def __init__(self, size, effective_sb_size, khop, num_nodes, mmapped_features,
             feature_dim, exp_name, sb, verbose):
         
         self.size = size
         self.effective_sb_size = effective_sb_size
+        self.khop = khop
         # The current implementation use int16 for 'iters' which limits the number of 
         # iterations to perform cache state simulation.
         if self.effective_sb_size > torch.iinfo(torch.int16).max:
@@ -110,6 +112,27 @@ class FeatureCache:
         filled=False
         count=0
         initial_cache_indices = torch.empty((0,), dtype=torch.int64, device='cuda')
+
+        # import pdb; pdb.set_trace()
+
+        if self.khop > 1:
+            n_id_prime_list = [[]] * math.ceil(self.effective_sb_size / self.khop)
+            idx_prime = 0
+            for idx in range(0, len(n_id_list), self.khop):
+                n_id_prime = n_id_list[idx]
+                if idx <= len(n_id_list) - self.khop:
+                    for i in range(idx + 1, idx + self.khop):
+                        n_id_prime = np.union1d(n_id_prime, n_id_list[i])
+                else:
+                    for i in range(idx, len(n_id_list)):
+                        n_id_prime = np.union1d(n_id_prime, n_id_list[i])
+                n_id_prime = torch.from_numpy(n_id_prime)
+                n_id_prime_list[idx_prime] = n_id_prime
+                idx_prime += 1
+            n_id_list = n_id_prime_list
+
+        # import pdb; pdb.set_trace()
+
         for n_id in n_id_list:
             n_id = n_id.cuda()
             if not filled:
@@ -151,6 +174,9 @@ class FeatureCache:
         iterptr[0] = 0
 
         del(n_id_list)
+        if self.khop > 1:
+            del(n_id_prime_list)
+
         if self.verbose:
             tqdm.write('Done!')
 
@@ -206,11 +232,24 @@ class FeatureCache:
             loader.append(threading.Thread(target=load_into_queue, args=(q[t], list(range(t, self.effective_sb_size, num_threads)), self.exp_name, self.sb), daemon=True))
             loader[t].start()
 
-        for i in range(self.effective_sb_size):
+        for idx in range(0, self.effective_sb_size, self.khop):
             # Get n_id from the queue and send n_id to GPU
-            n_id = q[i % num_threads].get()
-            n_id_cuda = n_id.cuda()
-            del(n_id)
+            n_id_prime = q[idx % num_threads].get()
+            if self.khop > 1:
+                if idx <= self.effective_sb_size - self.khop:
+                    for i in range(idx + 1, idx + self.khop):
+                        n_id_prime = np.union1d(n_id_prime, q[i % num_threads].get())
+                else:
+                    if idx != self.effective_sb_size - 1:
+                        for i in range(idx + 1, self.effective_sb_size):
+                            n_id_prime = np.union1d(n_id_prime, q[i % num_threads].get())
+                n_id_prime = torch.from_numpy(n_id_prime)
+
+            # n_id = q[idx % num_threads].get()
+            # n_id_cuda = n_id.cuda()
+            # del(n_id)
+            n_id_cuda = n_id_prime.cuda()
+            del(n_id_prime)
 
             # Map table update
             map_table[n_id_cuda] = torch.arange(n_id_cuda.numel(), dtype=torch.int32, device='cuda')
@@ -284,7 +323,7 @@ class FeatureCache:
             map_table[:] = -1
 
             # Multi-threaded save of changeset precomputation result
-            save_p = threading.Thread(target=save, args=(i, in_indices, in_positions, out_indices, self.exp_name, self.sb))
+            save_p = threading.Thread(target=save, args=(idx, in_indices, in_positions, out_indices, self.exp_name, self.sb))
             save_p.start()
             
             del(in_indices); del(out_indices); del(in_positions);
