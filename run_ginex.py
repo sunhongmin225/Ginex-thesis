@@ -27,6 +27,7 @@ argparser.add_argument('--dataset', type=str, default='ogbn-papers100M')
 argparser.add_argument('--exp-name', type=str, default=None)
 argparser.add_argument('--sizes', type=str, default='10,10,10')
 argparser.add_argument('--sb-size', type=int, default=1000)
+argparser.add_argument('--khop', type=int, default=1)
 argparser.add_argument('--feature-cache-size', type=float, default=500000000)
 argparser.add_argument('--trace-load-num-threads', type=int, default=4)
 argparser.add_argument('--neigh-cache-size', type=int, default=45000000000)
@@ -113,7 +114,7 @@ def inspect(i, last, mode='train'):
     # No changeset precomputation when i == 0
     if i != 0:
         effective_sb_size = int((node_idx.numel()%(args.sb_size*args.batch_size) + args.batch_size-1) / args.batch_size) if last else args.sb_size
-        cache = FeatureCache(args.feature_cache_size, effective_sb_size, num_nodes, mmapped_features, num_features, args.exp_name, i - 1, args.verbose)
+        cache = FeatureCache(args.feature_cache_size, effective_sb_size, args.khop, num_nodes, mmapped_features, num_features, args.exp_name, i - 1, args.verbose)
         # Pass 1 and 2 are executed before starting sb sample.
         # We overlap only the pass 3 of changeset precomputation, 
         # which is the most time consuming part, with sb sample.
@@ -426,7 +427,7 @@ def train(epoch):
             continue
 
         if i == 1:
-            delete_trace(i)
+            # delete_trace(i)
             break
 
         # Switch
