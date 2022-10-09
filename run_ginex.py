@@ -192,11 +192,17 @@ def switch(cache, initial_cache_indices):
 
 def trace_load(q, indices, sb):
     for i in indices:
-        q.put((
-            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
-            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
-            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_update_' + str(i) + '.pth'),
-            ))
+        if i % args.khop == 0:
+            q.put((
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_update_' + str(i) + '.pth'),
+                ))
+        else:
+            q.put((
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
+                ))
 
 
 def gather(gather_q, n_id, cache, batch_size):
@@ -255,6 +261,7 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
     out_indices_q = Queue(maxsize=2)
     gather_q = Queue(maxsize=1)
 
+    dequeued = False
     for idx in range(num_iter):
         batch_size = args.batch_size
         if idx == 0:
@@ -267,7 +274,6 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
                 n_id_q.put(n_id)
                 adjs_q.put(adjs)
                 in_indices_q.put(in_indices)
-
                 in_positions_q.put(in_positions)
                 out_indices_q.put(out_indices)
             sampling_end.record()
@@ -291,10 +297,12 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
 
             # Cache
             cache_start.record()
-            in_indices = in_indices_q.get()
-            in_positions = in_positions_q.get()
-            out_indices = out_indices_q.get()
-            cache.update(batch_inputs, in_indices, in_positions, out_indices)
+            if not in_indices_q.empty():
+                dequeued = True
+                in_indices = in_indices_q.get()
+                in_positions = in_positions_q.get()
+                out_indices = out_indices_q.get()
+                cache.update(batch_inputs, in_indices, in_positions, out_indices)
             cache_end.record()
 
         if idx != num_iter-1:
@@ -302,13 +310,19 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             sampling_start.record()
             q_value = q[(idx + 1) % args.trace_load_num_threads].get()
             if q_value:
-                n_id, adjs, (in_indices, in_positions, out_indices) = q_value
-                batch_size = adjs[-1].size[1]
-                n_id_q.put(n_id)
-                adjs_q.put(adjs)
-                in_indices_q.put(in_indices)
-                in_positions_q.put(in_positions)
-                out_indices_q.put(out_indices)
+                if len(q_value) == 3:
+                    n_id, adjs, (in_indices, in_positions, out_indices) = q_value
+                    batch_size = adjs[-1].size[1]
+                    n_id_q.put(n_id)
+                    adjs_q.put(adjs)
+                    in_indices_q.put(in_indices)
+                    in_positions_q.put(in_positions)
+                    out_indices_q.put(out_indices)
+                else:
+                    n_id, adjs = q_value
+                    batch_size = adjs[-1].size[1]
+                    n_id_q.put(n_id)
+                    adjs_q.put(adjs)
             sampling_end.record()
 
             # Gather
@@ -346,12 +360,15 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
         n_id = n_id_q.get()
         del(n_id)
         if idx == 0:
+            dequeued = True
             in_indices = in_indices_q.get()
             in_positions = in_positions_q.get()
             out_indices = out_indices_q.get()
-        del(in_indices)
-        del(in_positions)
-        del(out_indices)
+        if dequeued:
+            del(in_indices)
+            del(in_positions)
+            del(out_indices)
+        dequeued = False
         del(adjs_host)
         tensor_free(batch_inputs)
         free_end.record()
@@ -426,9 +443,9 @@ def train(epoch):
         if i == 0:
             continue
 
-        if i == 1:
+        # if i == 1:
             # delete_trace(i)
-            break
+            # break
 
         # Switch
         if args.verbose:
@@ -460,7 +477,7 @@ def train(epoch):
         print ('{:.4f}'.format(sum(free_times)))
 
         # Delete obsolete runtime files
-        delete_trace(i)
+        # delete_trace(i)
 
         break
 
