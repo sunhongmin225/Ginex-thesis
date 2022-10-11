@@ -118,18 +118,18 @@ def inspect(i, last, mode='train'):
         # Pass 1 and 2 are executed before starting sb sample.
         # We overlap only the pass 3 of changeset precomputation, 
         # which is the most time consuming part, with sb sample.
-        start = time.time()
-        iterptr, iters, initial_cache_indices = cache.pass_1_and_2()
-        end = time.time()
-        print('[run_ginex.py] pass_1_and_2 time =', end - start)
         
         # Only changset precomputation at the last superbatch in epoch
         if last:
+            start = time.time()
+            iterptr, iters, initial_cache_indices = cache.pass_1_and_2()
+            end = time.time()
+            print('[run_ginex.py] pass_1_and_2 time =', end - start)
             cache.pass_3(iterptr, iters, initial_cache_indices)
             torch.cuda.empty_cache()
             return cache, initial_cache_indices.cpu()
-        else:
-            torch.cuda.empty_cache()
+        # else:
+            # torch.cuda.empty_cache()
 
     # Load neighbor cache
     neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat'
@@ -152,6 +152,12 @@ def inspect(i, last, mode='train'):
     sb_sample_start = time.time()
     for step, _ in enumerate(loader):
         if i != 0 and step == 0:
+            start = time.time()
+            iterptr, iters, initial_cache_indices = cache.pass_1_and_2()
+            end = time.time()
+            print('[run_ginex.py] pass_1_and_2 time =', end - start)
+            # torch.cuda.empty_cache()
+            
             start = time.time()
             cache.pass_3(iterptr, iters, initial_cache_indices)
             end = time.time()
@@ -192,11 +198,17 @@ def switch(cache, initial_cache_indices):
 
 def trace_load(q, indices, sb):
     for i in indices:
-        q.put((
-            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
-            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
-            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_update_' + str(i) + '.pth'),
-            ))
+        if i % args.khop == 0:
+            q.put((
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_update_' + str(i) + '.pth'),
+                ))
+        else:
+            q.put((
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
+                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
+                ))
 
 
 def gather(gather_q, n_id, cache, batch_size):
@@ -250,14 +262,17 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
 
     n_id_q = Queue(maxsize=2)
     adjs_q = Queue(maxsize=2)
-    in_indices_q = Queue(maxsize=max(2, args.khop))
-    in_positions_q = Queue(maxsize=max(2, args.khop))
-    out_indices_q = Queue(maxsize=max(2, args.khop))
+    in_indices_q = Queue(maxsize=2)
+    # in_indices_q = Queue(maxsize=max(2, args.khop))
+    in_positions_q = Queue(maxsize=2)
+    # in_positions_q = Queue(maxsize=max(2, args.khop))
+    out_indices_q = Queue(maxsize=2)
+    # out_indices_q = Queue(maxsize=max(2, args.khop))
     gather_q = Queue(maxsize=1)
 
     previous_batch_inputs = torch.tensor([])
     for idx in range(num_iter):
-        if idx % args.khop == 0:
+        if args.khop > 1 and idx % args.khop == 0:
             previous_batch_inputs = torch.tensor([])
         batch_size = args.batch_size
         if idx == 0:
@@ -298,13 +313,13 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
 
             # Cache
             cache_start.record()
-            if idx >= args.khop - 1:
+            if idx % args.khop == args.khop - 1:
                 in_indices = in_indices_q.get()
                 in_positions = in_positions_q.get()
                 out_indices = out_indices_q.get()
-            if args.khop > 1 and idx >= args.khop - 1:
+            if args.khop > 1 and idx % args.khop == args.khop - 1:
                 cache.update(previous_batch_inputs, in_indices, in_positions, out_indices)
-            else:
+            elif args.khop == 1:
                 cache.update(batch_inputs, in_indices, in_positions, out_indices)
             cache_end.record()
 
@@ -313,13 +328,19 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             sampling_start.record()
             q_value = q[(idx + 1) % args.trace_load_num_threads].get()
             if q_value:
-                n_id, adjs, (in_indices, in_positions, out_indices) = q_value
-                batch_size = adjs[-1].size[1]
-                n_id_q.put(n_id)
-                adjs_q.put(adjs)
-                in_indices_q.put(in_indices)
-                in_positions_q.put(in_positions)
-                out_indices_q.put(out_indices)
+                if len(q_value) == 3:
+                    n_id, adjs, (in_indices, in_positions, out_indices) = q_value
+                    batch_size = adjs[-1].size[1]
+                    n_id_q.put(n_id)
+                    adjs_q.put(adjs)
+                    in_indices_q.put(in_indices)
+                    in_positions_q.put(in_positions)
+                    out_indices_q.put(out_indices)
+                else:
+                    n_id, adjs = q_value
+                    batch_size = adjs[-1].size[1]
+                    n_id_q.put(n_id)
+                    adjs_q.put(adjs)
             sampling_end.record()
 
             # Gather
@@ -360,7 +381,7 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             in_indices = in_indices_q.get()
             in_positions = in_positions_q.get()
             out_indices = out_indices_q.get()
-        if (idx != 0 and idx >= args.khop - 1) or args.khop == 1:
+        if (idx != 0 and idx % args.khop == args.khop - 1) or args.khop == 1:
             del(in_indices)
             del(in_positions)
             del(out_indices)
