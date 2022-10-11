@@ -192,17 +192,11 @@ def switch(cache, initial_cache_indices):
 
 def trace_load(q, indices, sb):
     for i in indices:
-        if i % args.khop == 0:
-            q.put((
-                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
-                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
-                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_update_' + str(i) + '.pth'),
-                ))
-        else:
-            q.put((
-                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
-                torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
-                ))
+        q.put((
+            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_ids_' + str(i) + '.pth'),
+            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_adjs_' + str(i) + '.pth'),
+            torch.load('./trace/' + args.exp_name + '/' + 'sb_' + str(sb) + '_update_' + str(i) + '.pth'),
+            ))
 
 
 def gather(gather_q, n_id, cache, batch_size):
@@ -256,13 +250,15 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
 
     n_id_q = Queue(maxsize=2)
     adjs_q = Queue(maxsize=2)
-    in_indices_q = Queue(maxsize=2)
-    in_positions_q = Queue(maxsize=2)
-    out_indices_q = Queue(maxsize=2)
+    in_indices_q = Queue(maxsize=max(2, args.khop))
+    in_positions_q = Queue(maxsize=max(2, args.khop))
+    out_indices_q = Queue(maxsize=max(2, args.khop))
     gather_q = Queue(maxsize=1)
 
-    dequeued = False
+    previous_batch_inputs = torch.tensor([])
     for idx in range(num_iter):
+        if idx % args.khop == 0:
+            previous_batch_inputs = torch.tensor([])
         batch_size = args.batch_size
         if idx == 0:
             # Sample
@@ -281,27 +277,34 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             # Gather
             gather_start.record()
             batch_inputs = gather_ginex(features, n_id, num_features, cache)
+            if args.khop > 1:
+                previous_batch_inputs = torch.cat((previous_batch_inputs, batch_inputs))
             batch_labels = labels[n_id[:batch_size]]
             gather_end.record()
 
             # Cache
             cache_start.record()
-            cache.update(batch_inputs, in_indices, in_positions, out_indices)
+            if args.khop == 1:
+                cache.update(batch_inputs, in_indices, in_positions, out_indices)
             cache_end.record()
 
         if idx != 0:
             # Gather
             gather_start.record()
             (batch_inputs, batch_labels) = gather_q.get()
+            if args.khop > 1:
+                previous_batch_inputs = torch.cat((previous_batch_inputs, batch_inputs))
             gather_end.record()
 
             # Cache
             cache_start.record()
-            if not in_indices_q.empty():
-                dequeued = True
+            if idx >= args.khop - 1:
                 in_indices = in_indices_q.get()
                 in_positions = in_positions_q.get()
                 out_indices = out_indices_q.get()
+            if args.khop > 1 and idx >= args.khop - 1:
+                cache.update(previous_batch_inputs, in_indices, in_positions, out_indices)
+            else:
                 cache.update(batch_inputs, in_indices, in_positions, out_indices)
             cache_end.record()
 
@@ -310,19 +313,13 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             sampling_start.record()
             q_value = q[(idx + 1) % args.trace_load_num_threads].get()
             if q_value:
-                if len(q_value) == 3:
-                    n_id, adjs, (in_indices, in_positions, out_indices) = q_value
-                    batch_size = adjs[-1].size[1]
-                    n_id_q.put(n_id)
-                    adjs_q.put(adjs)
-                    in_indices_q.put(in_indices)
-                    in_positions_q.put(in_positions)
-                    out_indices_q.put(out_indices)
-                else:
-                    n_id, adjs = q_value
-                    batch_size = adjs[-1].size[1]
-                    n_id_q.put(n_id)
-                    adjs_q.put(adjs)
+                n_id, adjs, (in_indices, in_positions, out_indices) = q_value
+                batch_size = adjs[-1].size[1]
+                n_id_q.put(n_id)
+                adjs_q.put(adjs)
+                in_indices_q.put(in_indices)
+                in_positions_q.put(in_positions)
+                out_indices_q.put(out_indices)
             sampling_end.record()
 
             # Gather
@@ -359,16 +356,14 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
         total_correct += int(out.argmax(dim=-1).eq(batch_labels_cuda.long()).sum())
         n_id = n_id_q.get()
         del(n_id)
-        if idx == 0:
-            dequeued = True
+        if idx == 0 and args.khop == 1:
             in_indices = in_indices_q.get()
             in_positions = in_positions_q.get()
             out_indices = out_indices_q.get()
-        if dequeued:
+        if (idx != 0 and idx >= args.khop - 1) or args.khop == 1:
             del(in_indices)
             del(in_positions)
             del(out_indices)
-        dequeued = False
         del(adjs_host)
         tensor_free(batch_inputs)
         free_end.record()
@@ -477,7 +472,7 @@ def train(epoch):
         print ('{:.4f}'.format(sum(free_times)))
 
         # Delete obsolete runtime files
-        # delete_trace(i)
+        delete_trace(i)
 
         break
 

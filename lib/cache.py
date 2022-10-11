@@ -113,25 +113,21 @@ class FeatureCache:
         count=0
         initial_cache_indices = torch.empty((0,), dtype=torch.int64, device='cuda')
 
-        # import pdb; pdb.set_trace()
-
+        # Merge k n_ids for changeset precomputation
         if self.khop > 1:
             n_id_prime_list = [[]] * math.ceil(self.effective_sb_size / self.khop)
             idx_prime = 0
             for idx in range(0, len(n_id_list), self.khop):
-                n_id_prime = n_id_list[idx]
+                n_id_prime = n_id_list[idx].cuda()
                 if idx <= len(n_id_list) - self.khop:
                     for i in range(idx + 1, idx + self.khop):
-                        n_id_prime = np.union1d(n_id_prime, n_id_list[i])
+                        n_id_prime = torch.cat((n_id_prime, n_id_list[i].cuda())).unique()
                 else:
                     for i in range(idx, len(n_id_list)):
-                        n_id_prime = np.union1d(n_id_prime, n_id_list[i])
-                n_id_prime = torch.from_numpy(n_id_prime)
+                        n_id_prime = torch.cat((n_id_prime, n_id_list[i].cuda())).unique()
                 n_id_prime_list[idx_prime] = n_id_prime
                 idx_prime += 1
             n_id_list = n_id_prime_list
-
-        # import pdb; pdb.set_trace()
 
         for n_id in n_id_list:
             n_id = n_id.cuda()
@@ -146,7 +142,6 @@ class FeatureCache:
                     initial_cache_indices = torch.cat([initial_cache_indices, to_cache])
 
             frq[n_id] += 1
-            # import pdb; pdb.set_trace()
         if self.verbose:
             tqdm.write('Done!')
 
@@ -167,7 +162,6 @@ class FeatureCache:
             tmp = iterptr[n_id_cuda+1]
             iters[tmp] = i; del(tmp)
             iterptr[n_id_cuda+1] += 1; del(n_id_cuda)
-            # import pdb; pdb.set_trace()
 
         iters[iterptr[1:]] |= msb
         iterptr = iterptr[:-1]
@@ -215,8 +209,6 @@ class FeatureCache:
         cache_table[initial_cache_indices] += 1 # bit 0
         del(initial_cache_indices)
         map_table = torch.full((self.num_nodes,), -1, dtype=torch.int32, device='cuda')
-
-        # import pdb; pdb.set_trace()
         
         msb = (torch.tensor([1], dtype=torch.int16) << 15).cuda()
 
@@ -232,101 +224,108 @@ class FeatureCache:
             loader.append(threading.Thread(target=load_into_queue, args=(q[t], list(range(t, self.effective_sb_size, num_threads)), self.exp_name, self.sb), daemon=True))
             loader[t].start()
 
-        for idx in range(0, self.effective_sb_size, self.khop):
-            # Get n_id from the queue and send n_id to GPU
-            n_id_prime = q[idx % num_threads].get()
-            if self.khop > 1:
-                if idx <= self.effective_sb_size - self.khop:
-                    for i in range(idx + 1, idx + self.khop):
-                        n_id_prime = np.union1d(n_id_prime, q[i % num_threads].get())
-                else:
-                    if idx != self.effective_sb_size - 1:
-                        for i in range(idx + 1, self.effective_sb_size):
-                            n_id_prime = np.union1d(n_id_prime, q[i % num_threads].get())
-                n_id_prime = torch.from_numpy(n_id_prime)
+        # for idx in range(0, self.effective_sb_size, self.khop):
+        for idx in range(self.effective_sb_size):
 
-            # n_id = q[idx % num_threads].get()
-            # n_id_cuda = n_id.cuda()
-            # del(n_id)
-            n_id_cuda = n_id_prime.cuda()
-            del(n_id_prime)
+            if idx % self.khop == 0:
+                # Get n_id from the queue and send n_id to GPU
+                n_id_prime = q[idx % num_threads].get().cuda()
 
-            # Map table update
-            map_table[n_id_cuda] = torch.arange(n_id_cuda.numel(), dtype=torch.int32, device='cuda')
-
-            # import pdb; pdb.set_trace()
-            
-            # Update iterptr
-            iterptr[n_id_cuda] += 1
-            last_access = n_id_cuda[(iters[iterptr[n_id_cuda]] < 0)] # when msb is set
-            iterptr[last_access] = iters.numel()-1
-            del(last_access)
-
-            # import pdb; pdb.set_trace()
-
-            # Get candidates
-            # candidates = union(current cache indices, incoming indices)
-            cache_table[n_id_cuda] += 2 # bit 1
-            candidates = (cache_table > 0).nonzero().squeeze()
-            del(n_id_cuda)
-
-            # import pdb; pdb.set_trace()
-
-            # Get next access iterations of candidates
-            next_access_iters = iters[iterptr[candidates]]
-            next_access_iters.bitwise_and_(~msb)
-
-            # import pdb; pdb.set_trace()
-            
-            # Find num_entries elements in candidates with the smallest next access
-            # iteration by incrementally tracking threshold
-            count = (next_access_iters <= threshold).sum()
-            prev_status = (count >= self.num_entries)
-
-            if prev_status:
-                # Current threshold is high
-                threshold -= 1
-            else:
-                # Current threshold is low
-                threshold += 1
-            while (True):
-                if threshold > self.effective_sb_size:
-                    num_remains = 0
-                    break
-
-                count = (next_access_iters <= threshold).sum()
-                curr_status = (count >= self.num_entries)
-                if (prev_status ^ curr_status):
-                    if curr_status:
-                        num_remains = self.num_entries - (next_access_iters <= (threshold-1)).sum()
-                        threshold -= 1
+                # Merge k n_ids for changeset precomputation
+                if self.khop > 1:
+                    if idx <= self.effective_sb_size - self.khop:
+                        for i in range(idx + 1, idx + self.khop):
+                            n_id_prime = torch.cat((n_id_prime, q[i % num_threads].get().cuda())).unique()
                     else:
-                        num_remains = self.num_entries - count
-                    break
-                elif (curr_status): threshold -= 1
-                else: threshold += 1
-            
-            cache_table[candidates[next_access_iters <= threshold]] |= 4 # bit 2
-            cache_table[candidates[next_access_iters == (threshold+1)][:num_remains]] |= 4 # bit 2
-            del(candidates)
-            del(next_access_iters)
-           
-            # in_indices: indices to newly insert into cache
-            # in_positions: relative positions of nodes in in_indices within batch input
-            # out_indices: indices to evict from cache
-            in_indices = (cache_table == 2+4).nonzero().squeeze() # bit 1, 2
-            in_positions = map_table[in_indices]
-            out_indices = ((cache_table == 1) | (cache_table == 3)).nonzero().squeeze() # bit 0 || bit 0, 1
+                        if idx != self.effective_sb_size - 1:
+                            for i in range(idx + 1, self.effective_sb_size):
+                                n_id_prime = torch.cat((n_id_prime, q[i % num_threads].get().cuda())).unique()
 
-            # Configure cache table & map table for the next iteration
-            cache_table >>= 2
-            map_table[:] = -1
+                n_id_cuda = n_id_prime.cuda()
+                del(n_id_prime)
 
-            # Multi-threaded save of changeset precomputation result
-            save_p = threading.Thread(target=save, args=(idx, in_indices, in_positions, out_indices, self.exp_name, self.sb))
-            save_p.start()
-            
-            del(in_indices); del(out_indices); del(in_positions);
+                # Map table update
+                map_table[n_id_cuda] = torch.arange(n_id_cuda.numel(), dtype=torch.int32, device='cuda')
+                
+                # Update iterptr
+                iterptr[n_id_cuda] += 1
+                last_access = n_id_cuda[(iters[iterptr[n_id_cuda]] < 0)] # when msb is set
+                iterptr[last_access] = iters.numel()-1
+                del(last_access)
+
+                # Get candidates
+                # candidates = union(current cache indices, incoming indices)
+                cache_table[n_id_cuda] += 2 # bit 1
+                candidates = (cache_table > 0).nonzero().squeeze()
+                del(n_id_cuda)
+
+                # Get next access iterations of candidates
+                next_access_iters = iters[iterptr[candidates]]
+                next_access_iters.bitwise_and_(~msb)
+                
+                # Find num_entries elements in candidates with the smallest next access
+                # iteration by incrementally tracking threshold
+                count = (next_access_iters <= threshold).sum()
+                prev_status = (count >= self.num_entries)
+
+                if prev_status:
+                    # Current threshold is high
+                    threshold -= 1
+                else:
+                    # Current threshold is low
+                    threshold += 1
+                while (True):
+                    if threshold > self.effective_sb_size:
+                        num_remains = 0
+                        break
+
+                    count = (next_access_iters <= threshold).sum()
+                    curr_status = (count >= self.num_entries)
+                    if (prev_status ^ curr_status):
+                        if curr_status:
+                            num_remains = self.num_entries - (next_access_iters <= (threshold-1)).sum()
+                            threshold -= 1
+                        else:
+                            num_remains = self.num_entries - count
+                        break
+                    elif (curr_status): threshold -= 1
+                    else: threshold += 1
+                
+                cache_table[candidates[next_access_iters <= threshold]] |= 4 # bit 2
+                cache_table[candidates[next_access_iters == (threshold+1)][:num_remains]] |= 4 # bit 2
+                del(candidates)
+                del(next_access_iters)
+               
+                # in_indices: indices to newly insert into cache
+                # in_positions: relative positions of nodes in in_indices within batch input
+                # out_indices: indices to evict from cache
+                in_indices = (cache_table == 2+4).nonzero().squeeze() # bit 1, 2
+                in_positions = map_table[in_indices]
+                out_indices = ((cache_table == 1) | (cache_table == 3)).nonzero().squeeze() # bit 0 || bit 0, 1
+
+                # Configure cache table & map table for the next iteration
+                cache_table >>= 2
+                map_table[:] = -1
+
+                # Multi-threaded save of changeset precomputation result
+                save_p = threading.Thread(target=save, args=(idx, in_indices, in_positions, out_indices, self.exp_name, self.sb))
+                save_p.start()
+                
+                del(in_indices); del(out_indices); del(in_positions);
+
+            else:
+                # in_indices: indices to newly insert into cache
+                # in_positions: relative positions of nodes in in_indices within batch input
+                # out_indices: indices to evict from cache
+                in_indices = torch.tensor([], dtype=torch.int64)
+                in_positions = torch.tensor([], dtype=torch.int32)
+                out_indices = torch.tensor([], dtype=torch.int64)
+
+                # Multi-threaded save of changeset precomputation result
+                save_p = threading.Thread(target=save, args=(idx, in_indices, in_positions, out_indices, self.exp_name, self.sb))
+                save_p.start()
+                
+                del(in_indices); del(out_indices); del(in_positions);
 
             #####################################################################
 
