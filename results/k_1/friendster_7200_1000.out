@@ -1,0 +1,107 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 4 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 545.5841407775879
+Step 1: Done
+inspect_time = 563214.0
+Running 1th superbatch of total 4 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 1493.7340142726898
+[run_ginex.py] pass_1_and_2 time = 1493.7355771064758
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 350.0609266757965
+[run_ginex.py] pass_3 time = 350.0613257884979
+[run_ginex.py] sb_sample time = 1889.7371354103088
+Step 1: Done
+inspect_time = 1909469.5
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.19183999300003052
+gather:  310.0604553222656
+cache:  9.547552108764648
+transfer:  489.29913330078125
+forward:  564.5530395507812
+backward:  304.9216003417969
+free:  62.58211135864258
+1000
+sampling:  0.14723199605941772
+gather:  172.01434326171875
+cache:  15.493632316589355
+transfer:  102.61804962158203
+forward:  8.160767555236816
+backward:  5.693439960479736
+free:  26.916383743286133
+2000
+sampling:  0.16339200735092163
+gather:  202.49366760253906
+cache:  17.33283233642578
+transfer:  99.45110321044922
+forward:  7.97983980178833
+backward:  5.476384162902832
+free:  27.12384033203125
+3000
+sampling:  0.18963199853897095
+gather:  196.0720672607422
+cache:  16.52057647705078
+transfer:  100.02547454833984
+forward:  7.848447799682617
+backward:  5.398528099060059
+free:  26.635007858276367
+4000
+sampling:  0.14956800639629364
+gather:  192.84483337402344
+cache:  17.790496826171875
+transfer:  96.5432357788086
+forward:  7.932703971862793
+backward:  5.3288960456848145
+free:  26.089759826660156
+5000
+sampling:  0.17158399522304535
+gather:  192.87887573242188
+cache:  16.842559814453125
+transfer:  96.39366149902344
+forward:  7.821055889129639
+backward:  5.330944061279297
+free:  26.324256896972656
+6000
+sampling:  0.14745600521564484
+gather:  195.19500732421875
+cache:  17.288896560668945
+transfer:  99.48371124267578
+forward:  8.043135643005371
+backward:  5.480447769165039
+free:  26.972639083862305
+7000
+sampling:  0.1311360001564026
+gather:  196.21746826171875
+cache:  18.756895065307617
+transfer:  98.5068130493164
+forward:  7.9536638259887695
+backward:  5.478335857391357
+free:  26.767711639404297
+Step 3: Done
+Total stat
+1909469.5000
+134807.2656
+1226.0389
+1451954.6993
+131769.5958
+727959.6501
+57726.7930
+39341.5936
+195721.9996
+Epoch 00, Loss: 0.0002, Approx. Train: 0.2743
+Epoch time: 5229008.9433 ms

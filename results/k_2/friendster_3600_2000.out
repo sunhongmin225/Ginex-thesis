@@ -1,0 +1,15 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 4 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 567.5257902145386
+Step 1: Done
+inspect_time = 585192.3125
+Running 1th superbatch of total 4 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
