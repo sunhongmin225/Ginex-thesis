@@ -257,11 +257,8 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
     n_id_q = Queue(maxsize=2)
     adjs_q = Queue(maxsize=2)
     in_indices_q = Queue(maxsize=2)
-    # in_indices_q = Queue(maxsize=max(2, args.khop))
     in_positions_q = Queue(maxsize=2)
-    # in_positions_q = Queue(maxsize=max(2, args.khop))
     out_indices_q = Queue(maxsize=2)
-    # out_indices_q = Queue(maxsize=max(2, args.khop))
     gather_q = Queue(maxsize=1)
 
     for idx in range(num_iter):
