@@ -26,7 +26,7 @@ def cache_update(cache, batch_inputs, in_indices, in_positions, out_indices):
 
 
 def cache_update_khop(cache, batch_inputs_1, batch_inputs_2, in_indices, in_positions, out_indices):
-    update.cache_update_khop(cache.cache, cache.address_table, batch_inputs_1, batch_inputs_2, in_indices, in_positions, out_indices, cache.cache.shape[1])
+    update.cache_update_khop(cache.cache, cache.address_table, batch_inputs_1, batch_inputs_2, in_indices, in_positions, out_indices, cache.cache.shape[1], batch_inputs_1.shape[0], batch_inputs_2.shape[0])
 
 
 def fill_neighbor_cache(cache, rowptr, col, cached_idx, address_table, num_entries):
