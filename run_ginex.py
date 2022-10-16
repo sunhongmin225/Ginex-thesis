@@ -342,9 +342,9 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             if args.khop > 1 and idx % args.khop == args.khop - 1:
                 # if idx >= 350:
                     # import pdb; pdb.set_trace()
-                cache.update(torch.cat((previous_batch_inputs, batch_inputs)), in_indices, in_positions, out_indices)
+                # cache.update(torch.cat((previous_batch_inputs, batch_inputs)), in_indices, in_positions, out_indices)
                 # cache.update(concat_batch_inputs, in_indices, in_positions, out_indices)
-                # cache.update_khop(previous_batch_inputs, batch_inputs, in_indices, in_positions, out_indices)
+                cache.update_khop(previous_batch_inputs, batch_inputs, in_indices, in_positions, out_indices)
             elif args.khop == 1:
                 cache.update(batch_inputs, in_indices, in_positions, out_indices)
             cache_end.record()
