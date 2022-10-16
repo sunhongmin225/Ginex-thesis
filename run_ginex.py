@@ -121,18 +121,18 @@ def inspect(i, last, mode='train'):
         # Pass 1 and 2 are executed before starting sb sample.
         # We overlap only the pass 3 of changeset precomputation, 
         # which is the most time consuming part, with sb sample.
+        start = time.time()
+        iterptr, iters, initial_cache_indices = cache.pass_1_and_2()
+        end = time.time()
+        print('[run_ginex.py] pass_1_and_2 time =', end - start)
         
         # Only changset precomputation at the last superbatch in epoch
         if last:
-            start = time.time()
-            iterptr, iters, initial_cache_indices = cache.pass_1_and_2()
-            end = time.time()
-            print('[run_ginex.py] pass_1_and_2 time =', end - start)
             cache.pass_3(iterptr, iters, initial_cache_indices)
             torch.cuda.empty_cache()
             return cache, initial_cache_indices.cpu()
-        # else:
-            # torch.cuda.empty_cache()
+        else:
+            torch.cuda.empty_cache()
 
     # Load neighbor cache
     neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat'
@@ -154,13 +154,7 @@ def inspect(i, last, mode='train'):
 
     sb_sample_start = time.time()
     for step, _ in enumerate(loader):
-        if i != 0 and step == 0:
-            start = time.time()
-            iterptr, iters, initial_cache_indices = cache.pass_1_and_2()
-            end = time.time()
-            print('[run_ginex.py] pass_1_and_2 time =', end - start)
-            # torch.cuda.empty_cache()
-            
+        if i != 0 and step == 0:            
             start = time.time()
             cache.pass_3(iterptr, iters, initial_cache_indices)
             end = time.time()
