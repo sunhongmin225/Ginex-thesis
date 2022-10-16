@@ -75,6 +75,8 @@ sampling_start = torch.cuda.Event(enable_timing=True)
 sampling_end = torch.cuda.Event(enable_timing=True)
 gather_start = torch.cuda.Event(enable_timing=True)
 gather_end = torch.cuda.Event(enable_timing=True)
+concat_start = torch.cuda.Event(enable_timing=True)
+concat_end = torch.cuda.Event(enable_timing=True)
 transfer_start = torch.cuda.Event(enable_timing=True)
 transfer_end = torch.cuda.Event(enable_timing=True)
 forward_start = torch.cuda.Event(enable_timing=True)
@@ -88,6 +90,7 @@ free_end = torch.cuda.Event(enable_timing=True)
 
 sampling_times = []
 gather_times = []
+concat_times = []
 cache_times = []
 transfer_times = []
 forward_times = []
@@ -270,10 +273,12 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
     # out_indices_q = Queue(maxsize=max(2, args.khop))
     gather_q = Queue(maxsize=1)
 
-    previous_batch_inputs = torch.tensor([])
     for idx in range(num_iter):
+        # print('arcmsh::idx =', idx)
         if args.khop > 1 and idx % args.khop == 0:
+            # concat_start.record()
             previous_batch_inputs = torch.tensor([])
+            # concat_end.record()
         batch_size = args.batch_size
         if idx == 0:
             # Sample
@@ -292,10 +297,16 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             # Gather
             gather_start.record()
             batch_inputs = gather_ginex(features, n_id, num_features, cache)
-            if args.khop > 1:
-                previous_batch_inputs = torch.cat((previous_batch_inputs, batch_inputs))
             batch_labels = labels[n_id[:batch_size]]
             gather_end.record()
+
+            # Concat
+            concat_start.record()
+            if args.khop > 1:
+                # previous_batch_inputs = torch.cat((previous_batch_inputs, batch_inputs))
+                # previous_batch_inputs = batch_inputs.detach().clone()
+                previous_batch_inputs = batch_inputs
+            concat_end.record()
 
             # Cache
             cache_start.record()
@@ -307,9 +318,20 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             # Gather
             gather_start.record()
             (batch_inputs, batch_labels) = gather_q.get()
-            if args.khop > 1:
-                previous_batch_inputs = torch.cat((previous_batch_inputs, batch_inputs))
             gather_end.record()
+
+            # Concat
+            concat_start.record()
+            if args.khop > 1:
+                # import pdb; pdb.set_trace()
+                if idx % args.khop == 0:
+                    # previous_batch_inputs = batch_inputs.detach().clone()
+                    previous_batch_inputs = batch_inputs
+                # else:
+                    # import pdb; pdb.set_trace()
+                    # concat_batch_inputs = torch.cat((previous_batch_inputs, batch_inputs))
+                # import pdb; pdb.set_trace()
+            concat_end.record()
 
             # Cache
             cache_start.record()
@@ -318,7 +340,11 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
                 in_positions = in_positions_q.get()
                 out_indices = out_indices_q.get()
             if args.khop > 1 and idx % args.khop == args.khop - 1:
-                cache.update(previous_batch_inputs, in_indices, in_positions, out_indices)
+                # if idx >= 350:
+                    # import pdb; pdb.set_trace()
+                cache.update(torch.cat((previous_batch_inputs, batch_inputs)), in_indices, in_positions, out_indices)
+                # cache.update(concat_batch_inputs, in_indices, in_positions, out_indices)
+                # cache.update_khop(previous_batch_inputs, batch_inputs, in_indices, in_positions, out_indices)
             elif args.khop == 1:
                 cache.update(batch_inputs, in_indices, in_positions, out_indices)
             cache_end.record()
@@ -386,7 +412,11 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             del(in_positions)
             del(out_indices)
         del(adjs_host)
-        tensor_free(batch_inputs)
+        if args.khop > 1 and idx % args.khop == args.khop - 1:
+            tensor_free(previous_batch_inputs)
+            tensor_free(batch_inputs)
+        # if args.khop > 1 and idx % args.khop == args.khop - 1:
+            # tensor_free(concat_batch_inputs)
         free_end.record()
 
         pbar.update(batch_size)
@@ -394,6 +424,7 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
         torch.cuda.synchronize()
         sampling_time = sampling_start.elapsed_time(sampling_end)
         gather_time = gather_start.elapsed_time(gather_end)
+        concat_time = concat_start.elapsed_time(concat_end)
         cache_time = cache_start.elapsed_time(cache_end)
         transfer_time = transfer_start.elapsed_time(transfer_end)
         forward_time = forward_start.elapsed_time(forward_end)
@@ -403,6 +434,7 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             print (idx)
             print('sampling: ', sampling_time)
             print('gather: ', gather_time)
+            print('concat: ', concat_time)
             print('cache: ', cache_time)
             print('transfer: ', transfer_time)
             print('forward: ', forward_time)
@@ -410,6 +442,7 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             print('free: ', free_time)
         sampling_times.append(sampling_time)
         gather_times.append(gather_time)
+        concat_times.append(concat_time)
         cache_times.append(cache_time)
         transfer_times.append(transfer_time)
         forward_times.append(forward_time)
@@ -437,6 +470,7 @@ def train(epoch):
 
         sampling_times.clear()
         gather_times.clear()
+        concat_times.clear()
         cache_times.clear()
         transfer_times.clear()
         forward_times.clear()
@@ -486,6 +520,7 @@ def train(epoch):
         print ('{:.4f}'.format(switch_time))
         print ('{:.4f}'.format(sum(sampling_times)))
         print ('{:.4f}'.format(sum(gather_times)))
+        print ('{:.4f}'.format(sum(concat_times)))
         print ('{:.4f}'.format(sum(cache_times)))
         print ('{:.4f}'.format(sum(transfer_times)))
         print ('{:.4f}'.format(sum(forward_times)))
@@ -493,7 +528,7 @@ def train(epoch):
         print ('{:.4f}'.format(sum(free_times)))
 
         # Delete obsolete runtime files
-        delete_trace(i)
+        # delete_trace(i)
 
         break
 
