@@ -64,6 +64,10 @@ torch::Tensor gather_ginex(std::string feature_file, torch::Tensor idx, int64_t 
     auto cache_data = cache.data_ptr<float>();
     auto cache_table_data = cache_table.data_ptr<int32_t>();
 
+    // int num_hit = 0;
+    // int num_miss = 0;
+
+    // #pragma omp parallel for num_threads(1)
     #pragma omp parallel for num_threads(atoi(getenv("GINEX_NUM_THREADS")))
     for (int64_t n = 0; n < num_idx; n++) {
         int64_t i;
@@ -76,9 +80,11 @@ torch::Tensor gather_ginex(std::string feature_file, torch::Tensor idx, int64_t 
         i = idx_data[n];
         cache_entry = cache_table_data[i];
         if (cache_entry >= 0) {
+            // num_hit++;
             memcpy(result_buffer+feature_dim*n, cache_data+cache_entry*feature_dim, feature_size);
         }
         else {
+            // num_miss++;
             offset = i * feature_size;
             aligned_offset = offset&(long)~(ALIGNMENT-1);
             residual = offset - aligned_offset;
@@ -96,6 +102,9 @@ torch::Tensor gather_ginex(std::string feature_file, torch::Tensor idx, int64_t 
             memcpy(result_buffer+feature_dim*n, read_buffer+(ALIGNMENT*2*omp_get_thread_num()+residual)/sizeof(float), feature_size);
         }
     }
+
+    // float hit_ratio = (float) num_hit / (float) (num_hit + num_miss);
+    // printf("arcmsh::gather::num_hit = %d, num_miss = %d, hit_ratio = %f\n", num_hit, num_miss, hit_ratio);
 
     auto options = torch::TensorOptions()
         .dtype(torch::kFloat32)
