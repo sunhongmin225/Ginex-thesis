@@ -232,15 +232,13 @@ class FeatureCache:
             if self.khop > 1:
                 if idx <= self.effective_sb_size - self.khop:
                     for i in range(idx + 1, idx + self.khop):
-                        n_id_prime = torch.cat((n_id_prime, q[i % num_threads].get().cuda())).unique(return_counts=True)
+                        n_id_prime = torch.cat((n_id_prime, q[i % num_threads].get().cuda())).unique()
                 else:
                     if idx != self.effective_sb_size - 1:
                         for i in range(idx + 1, self.effective_sb_size):
-                            n_id_prime = torch.cat((n_id_prime, q[i % num_threads].get().cuda())).unique(return_counts=True)
+                            n_id_prime = torch.cat((n_id_prime, q[i % num_threads].get().cuda())).unique()
 
-            # n_id_cuda = n_id_prime.cuda()
-            n_id_cuda = n_id_prime[0]
-            n_id_counts_cuda = n_id_prime[1]
+            n_id_cuda = n_id_prime.cuda()
             del(n_id_prime)
 
             # Map table update
@@ -255,11 +253,8 @@ class FeatureCache:
             # Get candidates
             # candidates = union(current cache indices, incoming indices)
             cache_table[n_id_cuda] += 2 # bit 1
-            # if idx == 350:
-                # import pdb; pdb.set_trace()
             candidates = (cache_table > 0).nonzero().squeeze()
-            cache_table[n_id_cuda[n_id_counts_cuda > 1]] += 8 # bit 3
-            # del(n_id_cuda)
+            del(n_id_cuda)
 
             # Get next access iterations of candidates
             next_access_iters = iters[iterptr[candidates]]
@@ -293,36 +288,17 @@ class FeatureCache:
                 elif (curr_status): threshold -= 1
                 else: threshold += 1
             
-            # if idx == 350:
-                # import pdb; pdb.set_trace()
             cache_table[candidates[next_access_iters <= threshold]] |= 4 # bit 2
-            border_candidates = candidates[next_access_iters == (threshold+1)]
-            # if idx == 350:
-                # import pdb; pdb.set_trace()
-            cache_table[border_candidates[cache_table[border_candidates] >= 8][:num_remains]] |= 4 # bit 2
-            num_remains -= border_candidates[cache_table[border_candidates] >= 8].numel()
-            # if idx == 350:
-                # import pdb; pdb.set_trace()
-            if num_remains > 0:
-                cache_table[border_candidates[cache_table[border_candidates] < 8][:num_remains]] |= 4 # bit 2
-            # cache_table[candidates[next_access_iters == (threshold+1)][:num_remains]] |= 4 # bit 2
+            cache_table[candidates[next_access_iters == (threshold+1)][:num_remains]] |= 4 # bit 2
             del(candidates)
-            del(border_candidates)
             del(next_access_iters)
-            # if idx == 350:
-                # import pdb; pdb.set_trace()
            
             # in_indices: indices to newly insert into cache
             # in_positions: relative positions of nodes in in_indices within batch input
             # out_indices: indices to evict from cache
-            cache_table[n_id_cuda[n_id_counts_cuda > 1]] -= 8 # bit 3
-            del(n_id_cuda)
-            del(n_id_counts_cuda)
             in_indices = (cache_table == 2+4).nonzero().squeeze() # bit 1, 2
             in_positions = map_table[in_indices]
             out_indices = ((cache_table == 1) | (cache_table == 3)).nonzero().squeeze() # bit 0 || bit 0, 1
-            # if idx == 350:
-                # import pdb; pdb.set_trace()
 
             # Configure cache table & map table for the next iteration
             cache_table >>= 2
@@ -352,6 +328,10 @@ class FeatureCache:
 
     def update(self, batch_inputs, in_indices, in_positions, out_indices):
         cache_update(self, batch_inputs, in_indices, in_positions, out_indices)
+
+
+    def update_khop(self, batch_inputs_1, batch_inputs_2, in_indices, in_positions, out_indices):
+        cache_update_khop(self, batch_inputs_1, batch_inputs_2, in_indices, in_positions, out_indices)
 
 
 class NeighborCache:
