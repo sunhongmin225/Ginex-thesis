@@ -330,8 +330,8 @@ class FeatureCache:
         cache_update(self, batch_inputs, in_indices, in_positions, out_indices)
 
 
-    def update_khop(self, batch_inputs_1, batch_inputs_2, in_indices, in_positions, out_indices):
-        cache_update_khop(self, batch_inputs_1, batch_inputs_2, in_indices, in_positions, out_indices)
+    def update_khop(self, batch_inputs_list, in_indices, in_positions, out_indices, idx):
+        cache_update_khop(self, batch_inputs_list, in_indices, in_positions, out_indices, idx)
 
 
 class NeighborCache:

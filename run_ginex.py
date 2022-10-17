@@ -263,7 +263,7 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
 
     for idx in range(num_iter):
         if args.khop > 1 and idx % args.khop == 0:
-            previous_batch_inputs = torch.tensor([])
+            batch_inputs_list = [torch.tensor([])] * args.khop
         batch_size = args.batch_size
         if idx == 0:
             # Sample
@@ -284,7 +284,7 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             batch_inputs = gather_ginex(features, n_id, num_features, cache)
             batch_labels = labels[n_id[:batch_size]]
             if args.khop > 1:
-                previous_batch_inputs = batch_inputs
+                batch_inputs_list[idx % args.khop] = batch_inputs
             gather_end.record()
 
             # Cache
@@ -297,8 +297,8 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             # Gather
             gather_start.record()
             (batch_inputs, batch_labels) = gather_q.get()
-            if args.khop > 1 and idx % args.khop == 0:
-                previous_batch_inputs = batch_inputs
+            # if args.khop > 1 and idx % args.khop == 0:
+            batch_inputs_list[idx % args.khop] = batch_inputs
             gather_end.record()
 
             # Cache
@@ -308,7 +308,9 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
                 in_positions = in_positions_q.get()
                 out_indices = out_indices_q.get()
             if args.khop > 1 and idx % args.khop == args.khop - 1:
-                cache.update_khop(previous_batch_inputs, batch_inputs, in_indices, in_positions, out_indices)
+                if idx >= 340:
+                    print('arcmsh::idx =', idx, ', in_indices.shape = ', in_indices.shape)
+                cache.update_khop(batch_inputs_list, in_indices, in_positions, out_indices, idx)
             elif args.khop == 1:
                 cache.update(batch_inputs, in_indices, in_positions, out_indices)
             cache_end.record()
@@ -319,13 +321,13 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             q_value = q[(idx + 1) % args.trace_load_num_threads].get()
             if q_value:
                 if len(q_value) == 3:
-                    n_id, adjs, (in_indices, in_positions, out_indices) = q_value
+                    n_id, adjs, (in_indices_, in_positions_, out_indices_) = q_value
                     batch_size = adjs[-1].size[1]
                     n_id_q.put(n_id)
                     adjs_q.put(adjs)
-                    in_indices_q.put(in_indices)
-                    in_positions_q.put(in_positions)
-                    out_indices_q.put(out_indices)
+                    in_indices_q.put(in_indices_)
+                    in_positions_q.put(in_positions_)
+                    out_indices_q.put(out_indices_)
                 else:
                     n_id, adjs = q_value
                     batch_size = adjs[-1].size[1]
@@ -377,8 +379,8 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             del(out_indices)
         del(adjs_host)
         if args.khop > 1 and idx % args.khop == args.khop - 1:
-            tensor_free(previous_batch_inputs)
-            tensor_free(batch_inputs)
+            for batch_inputs_list_elem in batch_inputs_list:
+                tensor_free(batch_inputs_list_elem)
         free_end.record()
 
         pbar.update(batch_size)
