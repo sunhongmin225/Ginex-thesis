@@ -425,9 +425,9 @@ def train(epoch):
         if i == 0:
             continue
 
-        if i == 1:
-            delete_trace(i)
-            break
+        # if i == 1:
+        #     delete_trace(i)
+        #     break
 
         # Switch
         if args.verbose:
@@ -459,7 +459,7 @@ def train(epoch):
         print ('{:.4f}'.format(sum(free_times)))
 
         # Delete obsolete runtime files
-        delete_trace(i)
+        # delete_trace(i)
 
         break
 
