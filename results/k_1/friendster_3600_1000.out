@@ -1,0 +1,75 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 8 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 283.7093138694763
+Step 1: Done
+inspect_time = 302667.15625
+Running 1th superbatch of total 8 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 44.610968351364136
+[run_ginex.py] pass_1_and_2 time = 44.61102747917175
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 176.5232150554657
+[run_ginex.py] pass_3 time = 176.52386260032654
+[run_ginex.py] sb_sample time = 329.6366949081421
+Step 1: Done
+inspect_time = 399214.53125
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.17977599799633026
+gather:  352.0144958496094
+cache:  20.974111557006836
+transfer:  248.30551147460938
+forward:  416.85693359375
+backward:  211.73248291015625
+free:  60.398048400878906
+1000
+sampling:  0.1720000058412552
+gather:  167.2989044189453
+cache:  14.01683235168457
+transfer:  101.87967681884766
+forward:  8.076704025268555
+backward:  5.4179840087890625
+free:  26.98137664794922
+2000
+sampling:  0.1520320028066635
+gather:  211.68240356445312
+cache:  16.502208709716797
+transfer:  107.46358489990234
+forward:  7.822239875793457
+backward:  5.390336036682129
+free:  28.555871963500977
+3000
+sampling:  0.17414399981498718
+gather:  193.39132690429688
+cache:  15.511232376098633
+transfer:  101.12025451660156
+forward:  7.949151992797852
+backward:  5.4476799964904785
+free:  26.884479522705078
+Step 3: Done
+Total stat
+399214.5312
+82331.1406
+629.3609
+729783.3267
+60104.8113
+374024.2491
+28947.0174
+19735.2370
+98391.1882
+Epoch 00, Loss: 0.0002, Approx. Train: 0.1371
+Epoch time: 2105776.8545 ms
