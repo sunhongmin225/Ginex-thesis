@@ -1,0 +1,83 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 6 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 1484.7185854911804
+Step 1: Done
+inspect_time = 1503758.125
+Running 1th superbatch of total 6 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 94.2020571231842
+[run_ginex.py] pass_1_and_2 time = 94.20383310317993
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 205.34268379211426
+[run_ginex.py] pass_3 time = 205.34294819831848
+[run_ginex.py] sb_sample time = 1530.9077773094177
+Step 1: Done
+inspect_time = 1674878.75
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.2152319997549057
+gather:  501.48114013671875
+cache:  34.61372756958008
+transfer:  411.266845703125
+forward:  302.6179504394531
+backward:  209.14483642578125
+free:  87.46022033691406
+1000
+sampling:  0.10073599964380264
+gather:  435.39617919921875
+cache:  37.31702423095703
+transfer:  167.8744659423828
+forward:  10.587264060974121
+backward:  6.856704235076904
+free:  49.67763137817383
+2000
+sampling:  0.11347199976444244
+gather:  432.74200439453125
+cache:  36.281856536865234
+transfer:  168.17298889160156
+forward:  10.565376281738281
+backward:  6.908927917480469
+free:  48.15059280395508
+3000
+sampling:  0.1021760031580925
+gather:  471.72808837890625
+cache:  36.652225494384766
+transfer:  167.78591918945312
+forward:  10.546239852905273
+backward:  6.928383827209473
+free:  48.104736328125
+4000
+sampling:  0.11196800321340561
+gather:  456.1227111816406
+cache:  37.866783142089844
+transfer:  171.05746459960938
+forward:  10.564000129699707
+backward:  6.931456089019775
+free:  49.542240142822266
+Step 3: Done
+Total stat
+1674878.7500
+79287.7656
+473.0286
+1956357.2953
+161103.6154
+711514.3379
+44885.4097
+29307.5199
+206117.7892
+Epoch 00, Loss: 0.0003, Approx. Train: 0.1905
+Epoch time: 6376678.0672 ms
