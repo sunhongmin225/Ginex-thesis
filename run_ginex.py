@@ -308,8 +308,6 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
                 in_positions = in_positions_q.get()
                 out_indices = out_indices_q.get()
             if args.khop > 1 and idx % args.khop == args.khop - 1:
-                if idx >= 340:
-                    print('arcmsh::idx =', idx, ', in_indices.shape = ', in_indices.shape)
                 cache.update_khop(batch_inputs_list, in_indices, in_positions, out_indices, idx)
             elif args.khop == 1:
                 cache.update(batch_inputs, in_indices, in_positions, out_indices)
