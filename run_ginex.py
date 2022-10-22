@@ -298,7 +298,8 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
             gather_start.record()
             (batch_inputs, batch_labels) = gather_q.get()
             # if args.khop > 1 and idx % args.khop == 0:
-            batch_inputs_list[idx % args.khop] = batch_inputs
+            if args.khop > 1:
+                batch_inputs_list[idx % args.khop] = batch_inputs
             gather_end.record()
 
             # Cache
@@ -379,6 +380,8 @@ def execute(i, cache, pbar, total_loss, total_correct, last, mode='train'):
         if args.khop > 1 and idx % args.khop == args.khop - 1:
             for batch_inputs_list_elem in batch_inputs_list:
                 tensor_free(batch_inputs_list_elem)
+        if args.khop == 1:
+            tensor_free(batch_inputs)
         free_end.record()
 
         pbar.update(batch_size)
