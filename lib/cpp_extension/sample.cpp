@@ -403,8 +403,8 @@ void fill_neighbor_cache(torch::Tensor cache, torch::Tensor rowptr, std::string 
 
         // cache update
         cache_data[position] = num_neighbors;
-        // memcpy(cache_data+position+1, (int64_t*)neighbors.data_ptr(), num_neighbors*sizeof(int64_t));
-        memcpy(cache_data+position+1, (int32_t*)neighbors.data_ptr(), num_neighbors*sizeof(int32_t));
+        memcpy(cache_data+position+1, (int64_t*)neighbors.data_ptr(), num_neighbors*sizeof(int64_t));
+        // memcpy(cache_data+position+1, (int32_t*)neighbors.data_ptr(), num_neighbors*sizeof(int32_t));
     }   
 
     return;
