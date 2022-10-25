@@ -9,7 +9,7 @@ import os
 from tqdm import tqdm
 import time
 import math
-
+import gzip
 
 def save(i, in_indices, in_indices_, out_indices, exp_name, sb):
     path = './trace/' + exp_name + '/sb_' + str(sb) + '_update_' + str(i) + '.pth'
@@ -363,8 +363,8 @@ class NeighborCache:
 
         table_size = self.num_nodes*8
         # table_size = self.num_nodes*4
-        cache_size = int((self.size - table_size)/8)
-        # cache_size = int((self.size - table_size)/4)
+        # cache_size = int((self.size - table_size)/8)
+        cache_size = int((self.size - table_size)/4)
         if cache_size < 0:
             raise ValueError
 
@@ -382,11 +382,13 @@ class NeighborCache:
         cached_idx = (address_table >= 0).nonzero().squeeze()
 
         # Multi-threaded load of neighborhood information
-        cache = torch.zeros(cache_size, dtype=torch.int64)
-        # cache = torch.zeros(cache_size, dtype=torch.int32)
+        # cache = torch.zeros(cache_size, dtype=torch.int64)
+        cache = torch.zeros(cache_size, dtype=torch.int32)
         # import pdb; pdb.set_trace()
         # fill_neighbor_cache(cache, self.indptr.to(torch.int32), self.indices, cached_idx.to(torch.int32), address_table, num_entries)
-        fill_neighbor_cache(cache, self.indptr, self.indices, cached_idx, address_table, num_entries)
+        # import pdb; pdb.set_trace()
+        # fill_neighbor_cache(cache, self.indptr, self.indices, cached_idx, address_table, num_entries)
+        fill_neighbor_cache_int32(cache, self.indptr, self.indices, cached_idx, address_table, num_entries)
                     
         return cache, address_table, num_entries
 
@@ -394,6 +396,7 @@ class NeighborCache:
     def save(self, data, filename):
         data_path = filename + '.dat'
         conf_path = filename + '_conf.json'
+        # import pdb; pdb.set_trace()
 
         data_mmap = np.memmap(data_path, mode='w+', shape=data.shape, dtype=data.dtype)
         data_mmap[:] = data[:]

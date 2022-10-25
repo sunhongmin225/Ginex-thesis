@@ -138,7 +138,8 @@ def inspect(i, last, mode='train'):
     neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '.dat'
     neighbor_cachetable_conf_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
     neighbor_cachetable_numel = json.load(open(neighbor_cachetable_conf_path, 'r'))['shape'][0]
-    neighbor_cache = load_int64(neighbor_cache_path, neighbor_cache_numel)
+    # neighbor_cache = load_int64(neighbor_cache_path, neighbor_cache_numel)
+    neighbor_cache = load_int32(neighbor_cache_path, neighbor_cache_numel)
     neighbor_cachetable = load_int64(neighbor_cachetable_path, neighbor_cachetable_numel)
 
     start_idx = i * args.batch_size * args.sb_size 
