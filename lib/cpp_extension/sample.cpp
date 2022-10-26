@@ -337,8 +337,8 @@ sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor
   // prepare buffer
   int64_t neighbor_buffer_size = 1<<15;
   // int32_t neighbor_buffer_size = 1<<15;
-  int64_t* neighbor_buffer = (int64_t*)malloc(neighbor_buffer_size*sizeof(int64_t) + 2*ALIGNMENT);
-  // int32_t* neighbor_buffer = (int32_t*)malloc(neighbor_buffer_size*sizeof(int32_t) + 2*ALIGNMENT);
+  // int64_t* neighbor_buffer = (int64_t*)malloc(neighbor_buffer_size*sizeof(int64_t) + 2*ALIGNMENT);
+  int64_t* neighbor_buffer = (int64_t*)malloc(neighbor_buffer_size*sizeof(int32_t) + 2*ALIGNMENT);
   int64_t* aligned_neighbor_buffer = (int64_t*)(((long)neighbor_buffer+(long)ALIGNMENT)&(long)~(ALIGNMENT-1));
   // int32_t* aligned_neighbor_buffer = (int32_t*)(((long)neighbor_buffer+(int)ALIGNMENT)&(int)~(ALIGNMENT-1));
 
