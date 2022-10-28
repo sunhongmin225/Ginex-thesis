@@ -132,13 +132,21 @@ def inspect(i, last, mode='train'):
             torch.cuda.empty_cache()
 
     # Load neighbor cache
-    neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat'
-    neighbor_cache_conf_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
-    neighbor_cache_numel = json.load(open(neighbor_cache_conf_path, 'r'))['shape'][0]
-    neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '.dat'
-    neighbor_cachetable_conf_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
-    neighbor_cachetable_numel = json.load(open(neighbor_cachetable_conf_path, 'r'))['shape'][0]
+    # neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat'
+    # neighbor_cache_conf_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
+    # neighbor_cache_numel = json.load(open(neighbor_cache_conf_path, 'r'))['shape'][0]
+    # neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '.dat'
+    # neighbor_cachetable_conf_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
+    # neighbor_cachetable_numel = json.load(open(neighbor_cachetable_conf_path, 'r'))['shape'][0]
     # neighbor_cache = load_int64(neighbor_cache_path, neighbor_cache_numel)
+    # neighbor_cachetable = load_int64(neighbor_cachetable_path, neighbor_cachetable_numel)
+
+    neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '_int32.dat'
+    neighbor_cache_conf_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '_int32_conf.json'
+    neighbor_cache_numel = json.load(open(neighbor_cache_conf_path, 'r'))['shape'][0]
+    neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_int32.dat'
+    neighbor_cachetable_conf_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_int32_conf.json'
+    neighbor_cachetable_numel = json.load(open(neighbor_cachetable_conf_path, 'r'))['shape'][0]
     neighbor_cache = load_int32(neighbor_cache_path, neighbor_cache_numel)
     neighbor_cachetable = load_int64(neighbor_cachetable_path, neighbor_cachetable_numel)
 
@@ -149,9 +157,11 @@ def inspect(i, last, mode='train'):
                                        cache_data = neighbor_cache, address_table = neighbor_cachetable,
                                        batch_size=args.batch_size,
                                        shuffle=False, num_workers=args.num_workers, prefetch_factor=1<<20)
-
+    # import pdb; pdb.set_trace()
     sb_sample_start = time.time()
     for step, _ in enumerate(loader):
+        # if step == 0:
+            # break
         if i != 0 and step == 0:            
             start = time.time()
             cache.pass_3(iterptr, iters, initial_cache_indices)

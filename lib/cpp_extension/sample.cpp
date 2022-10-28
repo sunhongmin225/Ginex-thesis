@@ -29,6 +29,24 @@ int64_t load_neighbors_into_buffer(int col_fd, int64_t row_start, int64_t row_co
     // return (offset-aligned_offset)/sizeof(int32_t);
 }
 
+// return start index of buffer
+// int64_t load_int32_neighbors_into_buffer(int col_fd, int64_t row_start, int64_t row_count, int64_t* buffer){
+int64_t load_int32_neighbors_into_buffer(int col_fd, int64_t row_start, int32_t row_count, int32_t* buffer){
+    // int64_t size = (row_count*sizeof(int64_t) + 2*ALIGNMENT)&(long)~(ALIGNMENT-1);
+    int32_t size = (row_count*sizeof(int32_t) + 2*ALIGNMENT)&(int)~(ALIGNMENT-1);
+    int64_t offset = row_start*sizeof(int32_t);
+    // int32_t offset = row_start*sizeof(int32_t);
+    int64_t aligned_offset = offset&(long)~(ALIGNMENT-1);
+    // int32_t aligned_offset = offset&(int)~(ALIGNMENT-1);
+
+    if(pread(col_fd, buffer, size, aligned_offset) == -1){
+        fprintf(stderr, "ERROR: %s\n", strerror(errno));
+    }
+
+    // return (offset-aligned_offset)/sizeof(int64_t);
+    return (offset-aligned_offset)/sizeof(int32_t);
+}
+
 std::tuple<int64_t*, int64_t*, int64_t> get_new_neighbor_buffer(int64_t row_count){
 // std::tuple<int32_t*, int32_t*, int32_t> get_new_neighbor_buffer(int32_t row_count){
     int64_t size = (row_count*sizeof(int64_t) + 3*ALIGNMENT)&(long)~(ALIGNMENT-1);
@@ -40,6 +58,19 @@ std::tuple<int64_t*, int64_t*, int64_t> get_new_neighbor_buffer(int64_t row_coun
 
     return std::make_tuple(neighbor_buffer, aligned_neighbor_buffer, size/sizeof(int64_t));
     // return std::make_tuple(neighbor_buffer, aligned_neighbor_buffer, size/sizeof(int32_t));
+}
+
+// std::tuple<int64_t*, int64_t*, int64_t> get_new_int32_neighbor_buffer(int64_t row_count){
+std::tuple<int32_t*, int32_t*, int32_t> get_new_int32_neighbor_buffer(int32_t row_count){
+    // int64_t size = (row_count*sizeof(int64_t) + 3*ALIGNMENT)&(long)~(ALIGNMENT-1);
+    int32_t size = (row_count*sizeof(int32_t) + 3*ALIGNMENT)&(int)~(ALIGNMENT-1);
+    // int64_t* neighbor_buffer = (int64_t*)malloc(size + ALIGNMENT);
+    int32_t* neighbor_buffer = (int32_t*)malloc(size + ALIGNMENT);
+    // int64_t* aligned_neighbor_buffer = (int64_t*)(((long)neighbor_buffer+(long)ALIGNMENT)&(long)~(ALIGNMENT-1));
+    int32_t* aligned_neighbor_buffer = (int32_t*)(((long)neighbor_buffer+(long)ALIGNMENT)&(long)~(ALIGNMENT-1));
+
+    // return std::make_tuple(neighbor_buffer, aligned_neighbor_buffer, size/sizeof(int64_t));
+    return std::make_tuple(neighbor_buffer, aligned_neighbor_buffer, size/sizeof(int32_t));
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, int, int>
@@ -324,7 +355,7 @@ sample_adj_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx,
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, int, int>
-sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx, 
+sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx_int64, 
                   torch::Tensor cache, torch::Tensor cache_table,
                   int64_t num_neighbors, bool replace) {
                   // int32_t num_neighbors, bool replace) {
@@ -335,15 +366,16 @@ sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor
   int col_fd = open(col_file.c_str(), O_RDONLY | O_DIRECT);
 
   // prepare buffer
-  int64_t neighbor_buffer_size = 1<<15;
-  // int32_t neighbor_buffer_size = 1<<15;
+  // int64_t neighbor_buffer_size = 1<<15; // 2**15
+  int32_t neighbor_buffer_size = 1<<15; // 2**15
   // int64_t* neighbor_buffer = (int64_t*)malloc(neighbor_buffer_size*sizeof(int64_t) + 2*ALIGNMENT);
-  int64_t* neighbor_buffer = (int64_t*)malloc(neighbor_buffer_size*sizeof(int32_t) + 2*ALIGNMENT);
-  int64_t* aligned_neighbor_buffer = (int64_t*)(((long)neighbor_buffer+(long)ALIGNMENT)&(long)~(ALIGNMENT-1));
-  // int32_t* aligned_neighbor_buffer = (int32_t*)(((long)neighbor_buffer+(int)ALIGNMENT)&(int)~(ALIGNMENT-1));
+  int32_t* neighbor_buffer = (int32_t*)malloc(neighbor_buffer_size*sizeof(int32_t) + 2*ALIGNMENT);
+  // int64_t* aligned_neighbor_buffer = (int64_t*)(((long)neighbor_buffer+(long)ALIGNMENT)&(long)~(ALIGNMENT-1));
+  int32_t* aligned_neighbor_buffer = (int32_t*)(((long)neighbor_buffer+(long)ALIGNMENT)&(long)~(ALIGNMENT-1));
 
   auto rowptr_data = rowptr.data_ptr<int64_t>();
   // auto rowptr_data = rowptr.data_ptr<int32_t>();
+  torch::Tensor idx = idx_int64.to(torch::kInt32);
   auto idx_data = idx.data_ptr<int64_t>();
   // auto idx_data = idx.data_ptr<int32_t>();
   // auto cache_data = cache.data_ptr<int64_t>();
@@ -353,23 +385,23 @@ sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor
 
   auto out_rowptr = torch::empty(idx.numel() + 1, idx.options());
   auto out_rowptr_data = out_rowptr.data_ptr<int64_t>();
-  // auto out_rowptr_data = out_rowptr.data_ptr<int32_t>();
+  // auto out_rowptr_data = out_rowptr.data_ptr<int32_t>(); // FIXME
   out_rowptr_data[0] = 0;
 
   std::vector<std::vector<std::tuple<int64_t, int64_t>>> cols; // col, e_id
-  // std::vector<std::vector<std::tuple<int32_t, int32_t>>> cols; // col, e_id
-  std::vector<int64_t> n_ids;
-  // std::vector<int32_t> n_ids;
-  std::unordered_map<int64_t, int64_t> n_id_map;
-  // std::unordered_map<int32_t, int32_t> n_id_map;
+  // std::vector<std::vector<std::tuple<int32_t, int32_t>>> cols; // FIXME
+  // std::vector<int64_t> n_ids;
+  std::vector<int32_t> n_ids;
+  // std::unordered_map<int64_t, int64_t> n_id_map;
+  std::unordered_map<int32_t, int32_t> n_id_map;
 
   int num_hit = 0;
   int num_miss = 0;
 
   int64_t i;
   // int32_t i;
-  for (int64_t n = 0; n < idx.numel(); n++) {
-  // for (int32_t n = 0; n < idx.numel(); n++) {
+  // for (int64_t n = 0; n < idx.numel(); n++) {
+  for (int32_t n = 0; n < idx.numel(); n++) {
     i = idx_data[n];
     cols.push_back(std::vector<std::tuple<int64_t, int64_t>>());
     // cols.push_back(std::vector<std::tuple<int32_t, int32_t>>());
@@ -412,10 +444,10 @@ sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor
 
           if (row_count > neighbor_buffer_size){
               free(neighbor_buffer);
-              std::tie(neighbor_buffer, aligned_neighbor_buffer, neighbor_buffer_size) = get_new_neighbor_buffer(row_count);
+              std::tie(neighbor_buffer, aligned_neighbor_buffer, neighbor_buffer_size) = get_new_int32_neighbor_buffer(row_count);
           }
 
-          start_offset = load_neighbors_into_buffer(col_fd,  row_start, row_count, aligned_neighbor_buffer);
+          start_offset = load_int32_neighbors_into_buffer(col_fd,  row_start, row_count, aligned_neighbor_buffer);
           for (int64_t j = 0; j < row_count; j++) {
           // for (int32_t j = 0; j < row_count; j++) {
             e = start_offset + j;
@@ -460,10 +492,10 @@ sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor
 
           if (row_count > neighbor_buffer_size){
               free(neighbor_buffer);
-              std::tie(neighbor_buffer, aligned_neighbor_buffer, neighbor_buffer_size) = get_new_neighbor_buffer(row_count);
+              std::tie(neighbor_buffer, aligned_neighbor_buffer, neighbor_buffer_size) = get_new_int32_neighbor_buffer(row_count);
           }
           if (row_count > 0) {
-            start_offset = load_neighbors_into_buffer(col_fd,  row_start, row_count, aligned_neighbor_buffer);
+            start_offset = load_int32_neighbors_into_buffer(col_fd,  row_start, row_count, aligned_neighbor_buffer);
             for (int64_t j = 0; j < num_neighbors; j++) {
             // for (int32_t j = 0; j < num_neighbors; j++) {
               e = start_offset + rand() % row_count;
@@ -482,32 +514,32 @@ sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor
 
   } else { // Sample without replacement via Robert Floyd algorithm ============
 
-    for (int64_t i = 0; i < idx.numel(); i++) {
-    // for (int32_t i = 0; i < idx.numel(); i++) {
+    // for (int64_t i = 0; i < idx.numel(); i++) {
+    for (int32_t i = 0; i < idx.numel(); i++) {
       n = idx_data[i];
-      cache_entry = cache_table_data[n];
+      cache_entry = cache_table_data[(int64_t)n];
       if (cache_entry >= 0){
           num_hit++;
           row_count = cache_data[cache_entry];
           if (row_count > 0){
-              std::unordered_set<int64_t> perm;
-              // std::unordered_set<int32_t> perm;
+              // std::unordered_set<int64_t> perm;
+              std::unordered_set<int32_t> perm;
               if (row_count <= num_neighbors) {
-                for (int64_t j = 0; j < row_count; j++)
-                // for (int32_t j = 0; j < row_count; j++)
+                // for (int64_t j = 0; j < row_count; j++)
+                for (int32_t j = 0; j < row_count; j++)
                   perm.insert(j);
               } 
               else {
-                for (int64_t j = row_count - num_neighbors; j < row_count; j++) {
-                // for (int32_t j = row_count - num_neighbors; j < row_count; j++) {
+                // for (int64_t j = row_count - num_neighbors; j < row_count; j++) {
+                for (int32_t j = row_count - num_neighbors; j < row_count; j++) {
                   if (!perm.insert(rand() % j).second)
                     perm.insert(j);
                 }
               }
 
-              for (const int64_t &p : perm) {
-              // for (const int32_t &p : perm) {
-                e = cache_entry + 1 + p;
+              // for (const int64_t &p : perm) {
+              for (const int32_t &p : perm) {
+                e = cache_entry + 1 + (int64_t)p;
                 c = cache_data[e];
 
                 if (n_id_map.count(c) == 0) {
@@ -526,30 +558,30 @@ sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor
 
           if (row_count > neighbor_buffer_size){
               free(neighbor_buffer);
-              std::tie(neighbor_buffer, aligned_neighbor_buffer, neighbor_buffer_size) = get_new_neighbor_buffer(row_count);
+              std::tie(neighbor_buffer, aligned_neighbor_buffer, neighbor_buffer_size) = get_new_int32_neighbor_buffer(row_count);
           }
 
           if (row_count > 0){
-              start_offset = load_neighbors_into_buffer(col_fd,  row_start, row_count, aligned_neighbor_buffer);
+              start_offset = load_int32_neighbors_into_buffer(col_fd,  row_start, row_count, aligned_neighbor_buffer);
 
-              std::unordered_set<int64_t> perm;
-              // std::unordered_set<int32_t> perm;
+              // std::unordered_set<int64_t> perm;
+              std::unordered_set<int32_t> perm;
               if (row_count <= num_neighbors) {
-                for (int64_t j = 0; j < row_count; j++)
-                // for (int32_t j = 0; j < row_count; j++)
+                // for (int64_t j = 0; j < row_count; j++)
+                for (int32_t j = 0; j < row_count; j++)
                   perm.insert(j);
               } 
               else {
-                for (int64_t j = row_count - num_neighbors; j < row_count; j++) {
-                // for (int32_t j = row_count - num_neighbors; j < row_count; j++) {
+                // for (int64_t j = row_count - num_neighbors; j < row_count; j++) {
+                for (int32_t j = row_count - num_neighbors; j < row_count; j++) {
                   if (!perm.insert(rand() % j).second)
                     perm.insert(j);
                 }
               }
 
-              for (const int64_t &p : perm) {
-              // for (const int32_t &p : perm) {
-                e = start_offset + p;
+              // for (const int64_t &p : perm) {
+              for (const int32_t &p : perm) {
+                e = start_offset + (int64_t)p;
                 c = aligned_neighbor_buffer[e];
 
                 if (n_id_map.count(c) == 0) {
@@ -570,12 +602,12 @@ sample_adj_int32_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor
   auto out_n_id = torch::from_blob(n_ids.data(), {N}, idx.options()).clone();
 
   int64_t E = out_rowptr_data[idx.numel()];
-  // int32_t E = out_rowptr_data[idx.numel()];
+  // int32_t E = out_rowptr_data[idx.numel()]; // FIXME
   auto out_col = torch::empty(E, idx.options());
   auto out_col_data = out_col.data_ptr<int64_t>();
   // auto out_col_data = out_col.data_ptr<int32_t>();
-  auto out_e_id = torch::empty(E, idx.options());
-  auto out_e_id_data = out_e_id.data_ptr<int64_t>();
+  auto out_e_id = torch::empty(E, idx.options()); // don't care
+  auto out_e_id_data = out_e_id.data_ptr<int64_t>(); // don't care
   // auto out_e_id_data = out_e_id.data_ptr<int32_t>();
 
   i = 0;

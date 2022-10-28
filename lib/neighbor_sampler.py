@@ -114,7 +114,10 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
         adjs = []
         n_id = batch
         for size in self.sizes:
+            # print('arcmsh::neighbor_sampler.py::sample::n_id before =', n_id)
             adj_t, n_id, num_hit, num_miss = sample_adj_int32_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
+            # adj_t, n_id, num_hit, num_miss = sample_adj_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
+            # print('arcmsh::neighbor_sampler.py::sample::n_id after =', n_id)
 
             self.num_hit += num_hit
             self.num_miss += num_miss
