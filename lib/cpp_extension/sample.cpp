@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include <omp.h>
 #include <stdio.h>
+#include "lz4.h"
 #define ALIGNMENT 4096
 
 // return start index of buffer
@@ -748,6 +749,23 @@ get_int32_neighbors(torch::Tensor rowptr, std::string col_file, torch::Tensor id
   return out_n_id_int32;
 }
 
+void compress_and_save_neighbor_cache(torch::Tensor cache, int64_t num_elems) {
+
+    int64_t* cache_data = cache.data_ptr<int64_t>();
+    const int src_size = num_elems * sizeof(int64_t);
+    const int max_dst_size = LZ4_compressBound(src_size);
+    int64_t* compressed_data = (int64_t*) malloc((size_t)max_dst_size);
+    const int compressed_data_size = LZ4_compress_default((const char*) cache_data, (char*) compressed_data, src_size, max_dst_size);
+    compressed_data = (int64_t *) realloc(compressed_data, (size_t)compressed_data_size);
+
+    FILE* f = fopen("/home/arcuser/pyh_nvme/Ginex-thesis/dataset/ogbn_products_extended-ginex/nc_size_45GB.dat.lz4", "wb");
+    fwrite(&compressed_data[0], 1, compressed_data_size, f);
+    fclose(f);
+
+    free(compressed_data);
+    return;
+}
+
 void fill_neighbor_cache(torch::Tensor cache, torch::Tensor rowptr, std::string col, 
                 torch::Tensor cached_idx, torch::Tensor cache_table, int64_t num_entries) {
                 // torch::Tensor cached_idx, torch::Tensor cache_table, int32_t num_entries) {
@@ -817,5 +835,6 @@ PYBIND11_MODULE(sample, m) {
 	m.def("sample_adj_int32_ginex", &sample_adj_int32_ginex, "ginex version of sample_adj_int32");
     m.def("fill_neighbor_cache", &fill_neighbor_cache, "fetch neighbors of given indices into the cache and set the cache table");
     m.def("fill_neighbor_cache_int32", &fill_neighbor_cache_int32, "fetch neighbors of given indices into the cache as int32 and set the cache table");
+    m.def("compress_and_save_neighbor_cache", &compress_and_save_neighbor_cache, "compress and save neighbor cache");
 }
 

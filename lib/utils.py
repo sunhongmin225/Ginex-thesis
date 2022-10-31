@@ -46,3 +46,7 @@ def fill_neighbor_cache(cache, rowptr, col, cached_idx, address_table, num_entri
 
 def fill_neighbor_cache_int32(cache, rowptr, col, cached_idx, address_table, num_entries):
     sample.fill_neighbor_cache_int32(cache, rowptr, col, cached_idx, address_table, num_entries)
+
+
+def compress_and_save_neighbor_cache(cache, num_elems):
+    sample.compress_and_save_neighbor_cache(cache, nun_elems)
