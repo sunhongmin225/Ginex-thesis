@@ -60,7 +60,7 @@ int main(void) {
   std::vector<int> src_sizes;
   std::vector<int> compressed_data_sizes;
 
-  /*
+  
   // Compression
   for (int i = 0; i < num_elems.size(); i++) {
     int src_size = num_elems[i] * sizeof(int64_t);
@@ -94,7 +94,7 @@ int main(void) {
   }
   fclose(fw);
   printf("arcmsh::successfully wrote file will ret = %ld\n", ret);
-  */
+
 
   // Read from file
   FILE *fr;

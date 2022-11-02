@@ -38,3 +38,7 @@ def cache_update_khop(cache, batch_inputs_list, in_indices, in_positions, out_in
 
 def fill_neighbor_cache(cache, rowptr, col, cached_idx, address_table, num_entries):
     sample.fill_neighbor_cache(cache, rowptr, col, cached_idx, address_table, num_entries)
+
+
+def compress_neighbor_cache(ginex_cache, ginex_address_table, num_nodes):
+    sample.compress_neighbor_cache(ginex_cache, ginex_address_table, num_nodes)

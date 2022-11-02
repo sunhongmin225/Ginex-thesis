@@ -12,6 +12,7 @@
 extern "C" {
     #include "lz4.h"
 }
+#include <vector>
 #define ALIGNMENT 4096
 
 // return start index of buffer
@@ -439,8 +440,73 @@ void fill_neighbor_cache(torch::Tensor cache, torch::Tensor rowptr, std::string 
     return;
 }
 
+
+void compress_neighbor_cache(torch::Tensor ginex_cache, torch::Tensor ginex_cache_table, int64_t num_nodes) {
+
+    int64_t* ginex_cache_data = ginex_cache.data_ptr<int64_t>();
+    int64_t* ginex_cache_table_data = ginex_cache_table.data_ptr<int64_t>();
+    int64_t* my_cache_table_data = (int64_t*) malloc(num_nodes * 3 * sizeof(int64_t));
+
+    FILE *my_cache_f;
+    my_cache_f = fopen("nc_size_45000000000.dat.lz4", "wb");
+
+    int64_t start_offset = 0;
+    for (int64_t i = 0; i < num_nodes; i++) {
+      int64_t ginex_cache_idx = ginex_cache_table_data[i];
+      if (ginex_cache_idx == -1) {
+        my_cache_table_data[i * 3] = -1;
+        my_cache_table_data[i * 3 + 1] = 0; // don't care
+        my_cache_table_data[i * 3 + 2] = 0; // don't care
+      } else {
+        int64_t num_neighbors = ginex_cache_data[ginex_cache_idx];
+        int64_t* src_int64 = (int64_t*) malloc(num_neighbors * sizeof(int64_t));
+        for (int64_t j = 1; j <= num_neighbors; j++) { // TODO: think of case when num_neighbors = 0
+          src_int64[j - 1] = ginex_cache_data[ginex_cache_idx + j];
+        }
+        int src_size = num_neighbors * sizeof(int64_t);
+        int max_dst_size = LZ4_compressBound(src_size);
+        int64_t* compressed_data = (int64_t*) malloc((size_t) max_dst_size);
+        int compressed_data_size = LZ4_compress_default((const char*) src_int64, (char*) compressed_data, src_size, max_dst_size);
+        compressed_data = (int64_t *) realloc(compressed_data, (size_t) compressed_data_size);
+        
+        my_cache_table_data[i * 3] = start_offset;
+        my_cache_table_data[i * 3 + 1] = (int64_t) compressed_data_size;
+        my_cache_table_data[i * 3 + 2] = num_neighbors;
+        start_offset += compressed_data_size;
+
+        fwrite(compressed_data, 1, compressed_data_size, my_cache_f);
+
+        free(src_int64);
+        free(compressed_data);
+      }
+    }
+
+    fclose(my_cache_f);
+
+    FILE *my_cache_table_f;
+    my_cache_table_f = fopen("nctbl_size_45000000000.dat.lz4", "wb");
+
+    int64_t my_cache_table_size = num_nodes * 3 * sizeof(int64_t);
+    int64_t my_cache_table_max_dst_size = LZ4_compressBound(my_cache_table_size);
+    int64_t* my_cache_table_compressed_data = (int64_t*) malloc((size_t) my_cache_table_max_dst_size);
+    int my_cache_table_compressed_data_size = LZ4_compress_default((const char*) my_cache_table_data, (char*) my_cache_table_compressed_data, my_cache_table_size, my_cache_table_max_dst_size);
+    my_cache_table_compressed_data = (int64_t *) realloc(my_cache_table_compressed_data, (size_t) my_cache_table_compressed_data_size);
+    fwrite(my_cache_table_compressed_data, 1, my_cache_table_compressed_data_size, my_cache_table_f);
+    fclose(my_cache_table_f);
+    free(my_cache_table_compressed_data);
+
+    FILE *metadata_f;
+    metadata_f = fopen("nctbl_size_45000000000_metadata.txt", "w");
+    fprintf(metadata_f, "%d\n%d\n", my_cache_table_compressed_data_size, my_cache_table_size);
+    fclose(metadata_f);
+
+    free(my_cache_table_data);
+}
+
+
 PYBIND11_MODULE(sample, m) {
 	m.def("sample_adj_ginex", &sample_adj_ginex, "ginex version of sample_adj");
-    m.def("fill_neighbor_cache", &fill_neighbor_cache, "fetch neighbors of given indices into the cache and set the cache table");
+  m.def("fill_neighbor_cache", &fill_neighbor_cache, "fetch neighbors of given indices into the cache and set the cache table");
+  m.def("compress_neighbor_cache", &compress_neighbor_cache, "compress neighbor cache");
 }
 

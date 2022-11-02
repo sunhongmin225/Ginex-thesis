@@ -361,15 +361,15 @@ class NeighborCache:
         neighbor_counts = self.indptr[1:] - self.indptr[:-1]
         neighbor_counts = neighbor_counts[sorted_indices]
 
-        table_size = self.num_nodes*8
-        # table_size = self.num_nodes*4
-        cache_size = int((self.size - table_size)/8)
-        # cache_size = int((self.size - table_size)/4)
+        ginex_table_size = self.num_nodes*8
+        # ginex_table_size = self.num_nodes*4
+        cache_size = int((self.size - ginex_table_size)/8)
+        # cache_size = int((self.size - ginex_table_size)/4)
         if cache_size < 0:
             raise ValueError
 
-        address_table = torch.full((self.num_nodes,), -1, dtype=torch.int64)
-        # address_table = torch.full((self.num_nodes,), -1, dtype=torch.int32)
+        ginex_address_table = torch.full((self.num_nodes,), -1, dtype=torch.int64)
+        # ginex_address_table = torch.full((self.num_nodes,), -1, dtype=torch.int32)
 
         # Fetch neighborhood information of nodes into the cache one by one in order
         # of score until the cache gets full
@@ -377,18 +377,19 @@ class NeighborCache:
         num_entries = (cumulative_size <= cache_size).sum().item()
         # sorted_indices = sorted_indices.to(torch.int32)
         # import pdb; pdb.set_trace()
-        address_table[sorted_indices[:num_entries]] = torch.cat([torch.zeros(1).long(), cumulative_size[:num_entries-1]])
-        # address_table[sorted_indices[:num_entries]] = torch.cat([torch.zeros(1).int(), cumulative_size[:num_entries-1]]).to(torch.int32)
-        cached_idx = (address_table >= 0).nonzero().squeeze()
+        ginex_address_table[sorted_indices[:num_entries]] = torch.cat([torch.zeros(1).long(), cumulative_size[:num_entries-1]])
+        # ginex_address_table[sorted_indices[:num_entries]] = torch.cat([torch.zeros(1).int(), cumulative_size[:num_entries-1]]).to(torch.int32)
+        cached_idx = (ginex_address_table >= 0).nonzero().squeeze()
 
         # Multi-threaded load of neighborhood information
-        cache = torch.zeros(cache_size, dtype=torch.int64)
+        ginex_cache = torch.zeros(cache_size, dtype=torch.int64)
         # cache = torch.zeros(cache_size, dtype=torch.int32)
         # import pdb; pdb.set_trace()
-        # fill_neighbor_cache(cache, self.indptr.to(torch.int32), self.indices, cached_idx.to(torch.int32), address_table, num_entries)
-        fill_neighbor_cache(cache, self.indptr, self.indices, cached_idx, address_table, num_entries)
-                    
-        return cache, address_table, num_entries
+        # fill_neighbor_cache(cache, self.indptr.to(torch.int32), self.indices, cached_idx.to(torch.int32), ginex_address_table, num_entries)
+        fill_neighbor_cache(ginex_cache, self.indptr, self.indices, cached_idx, ginex_address_table, num_entries)
+        # import pdb; pdb.set_trace()
+        compress_neighbor_cache(ginex_cache, ginex_address_table, self.num_nodes)
+        return ginex_cache, ginex_address_table, num_entries
 
 
     def save(self, data, filename):
