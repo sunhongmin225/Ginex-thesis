@@ -6,3 +6,5 @@ lib/cpp_extension/__pycache__/
 *.pyc
 *.dat
 dataset
+multiple_ptrs_lz4
+single_ptr_lz4
