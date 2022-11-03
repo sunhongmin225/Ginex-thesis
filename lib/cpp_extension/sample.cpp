@@ -484,21 +484,10 @@ void compress_neighbor_cache(torch::Tensor ginex_cache, torch::Tensor ginex_cach
     fclose(my_cache_f);
 
     FILE *my_cache_table_f;
-    my_cache_table_f = fopen("nctbl_size_45000000000.dat.lz4", "wb");
-
+    my_cache_table_f = fopen("nctbl_size_45000000000_lz4.dat", "wb");
     int64_t my_cache_table_size = num_nodes * 3 * sizeof(int64_t);
-    int64_t my_cache_table_max_dst_size = LZ4_compressBound(my_cache_table_size);
-    int64_t* my_cache_table_compressed_data = (int64_t*) malloc((size_t) my_cache_table_max_dst_size);
-    int my_cache_table_compressed_data_size = LZ4_compress_default((const char*) my_cache_table_data, (char*) my_cache_table_compressed_data, my_cache_table_size, my_cache_table_max_dst_size);
-    my_cache_table_compressed_data = (int64_t *) realloc(my_cache_table_compressed_data, (size_t) my_cache_table_compressed_data_size);
-    fwrite(my_cache_table_compressed_data, 1, my_cache_table_compressed_data_size, my_cache_table_f);
+    fwrite(my_cache_table_data, 1, my_cache_table_size, my_cache_table_f);
     fclose(my_cache_table_f);
-    free(my_cache_table_compressed_data);
-
-    FILE *metadata_f;
-    metadata_f = fopen("nctbl_size_45000000000_metadata.txt", "w");
-    fprintf(metadata_f, "%d\n%d\n", my_cache_table_compressed_data_size, my_cache_table_size);
-    fclose(metadata_f);
 
     free(my_cache_table_data);
 }
