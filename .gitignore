@@ -8,3 +8,4 @@ lib/cpp_extension/__pycache__/
 dataset
 multiple_ptrs_lz4
 single_ptr_lz4
+lz4_decomp_and_valid_check
