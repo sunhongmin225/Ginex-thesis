@@ -132,14 +132,22 @@ def inspect(i, last, mode='train'):
             torch.cuda.empty_cache()
 
     # Load neighbor cache
-    neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat'
-    neighbor_cache_conf_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
-    neighbor_cache_numel = json.load(open(neighbor_cache_conf_path, 'r'))['shape'][0]
-    neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '.dat'
-    neighbor_cachetable_conf_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
-    neighbor_cachetable_numel = json.load(open(neighbor_cachetable_conf_path, 'r'))['shape'][0]
-    neighbor_cache = load_int64(neighbor_cache_path, neighbor_cache_numel)
+    metadata_path = str(dataset_path) + '/metadata_size_' + str(args.neigh_cache_size) + '.txt'
+    metadata_f = open(metadata_path, 'r')
+    metadatas = metadata_f.readlines()
+    neighbor_cachetable_numel = int(metadatas[0])
+    neighbor_cache_numel = int(metadatas[1])
+    metadata_f.close()
+    neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_lz4.dat'
+    # neighbor_cachetable_conf_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
+    # neighbor_cachetable_numel = json.load(open(neighbor_cachetable_conf_path, 'r'))['shape'][0]
+    neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat.lz4'
+    # neighbor_cache_conf_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
+    # neighbor_cache_numel = json.load(open(neighbor_cache_conf_path, 'r'))['shape'][0]
     neighbor_cachetable = load_int64(neighbor_cachetable_path, neighbor_cachetable_numel)
+    neighbor_cache = load_int8(neighbor_cache_path, neighbor_cache_numel)
+
+    # import pdb; pdb.set_trace()
 
     start_idx = i * args.batch_size * args.sb_size 
     end_idx = min((i+1) * args.batch_size * args.sb_size, node_idx.numel())

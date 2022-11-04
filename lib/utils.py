@@ -21,6 +21,10 @@ def load_int64(path, size):
     return mt_load.load_int64(path, size)
 
 
+def load_int8(path, size):
+    return mt_load.load_int8(path, size)
+
+
 def cache_update(cache, batch_inputs, in_indices, in_positions, out_indices):
     update.cache_update(cache.cache, cache.address_table, batch_inputs, in_indices, in_positions, out_indices, cache.cache.shape[1])
 
@@ -40,5 +44,5 @@ def fill_neighbor_cache(cache, rowptr, col, cached_idx, address_table, num_entri
     sample.fill_neighbor_cache(cache, rowptr, col, cached_idx, address_table, num_entries)
 
 
-def compress_neighbor_cache(ginex_cache, ginex_address_table, num_nodes):
-    sample.compress_neighbor_cache(ginex_cache, ginex_address_table, num_nodes)
+def compress_neighbor_cache(ginex_cache, ginex_address_table, num_nodes, metadata_filename, cache_filename, cache_tbl_filename):
+    sample.compress_neighbor_cache(ginex_cache, ginex_address_table, num_nodes, metadata_filename, cache_filename, cache_tbl_filename)

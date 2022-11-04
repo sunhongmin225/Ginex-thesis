@@ -347,11 +347,14 @@ class NeighborCache:
         indices (Tensor): the (memory-mapped) indices tensor.
         num_nodes (int): the number of nodes in the graph.
     '''
-    def __init__(self, size, score, indptr, indices, num_nodes):
+    def __init__(self, size, score, indptr, indices, num_nodes, metadata_filename, cache_filename, cache_tbl_filename):
         self.size = size
         self.indptr = indptr
         self.indices = indices
         self.num_nodes = num_nodes
+        self.metadata_filename = metadata_filename
+        self.cache_filename = cache_filename
+        self.cache_tbl_filename = cache_tbl_filename
 
         self.cache, self.address_table, self.num_entries = self.init_by_score(score)
 
@@ -388,7 +391,7 @@ class NeighborCache:
         # fill_neighbor_cache(cache, self.indptr.to(torch.int32), self.indices, cached_idx.to(torch.int32), ginex_address_table, num_entries)
         fill_neighbor_cache(ginex_cache, self.indptr, self.indices, cached_idx, ginex_address_table, num_entries)
         # import pdb; pdb.set_trace()
-        compress_neighbor_cache(ginex_cache, ginex_address_table, self.num_nodes)
+        compress_neighbor_cache(ginex_cache, ginex_address_table, self.num_nodes, self.metadata_filename, self.cache_filename, self.cache_tbl_filename)
         return ginex_cache, ginex_address_table, num_entries
 
 

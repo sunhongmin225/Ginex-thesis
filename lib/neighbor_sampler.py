@@ -17,6 +17,15 @@ def sample_adj_ginex(rowptr, col, subset, num_neighbors, replace, cache_data=Non
     return out, n_id, num_hit, num_miss
 
 
+def sample_adj_ginex_compression(rowptr, col, subset, num_neighbors, replace, cache_data=None, address_table=None):
+    rowptr, col, n_id, indptr, num_hit, num_miss = sample.sample_adj_ginex_compression(
+        rowptr, col, subset, cache_data, address_table, num_neighbors, replace)                                 
+    out = SparseTensor(rowptr=rowptr, row=None, col=col,                                                 
+                       sparse_sizes=(subset.size(0), n_id.size(0)),                                      
+                       is_sorted=True)                                                                   
+    return out, n_id, num_hit, num_miss
+
+
 def sample_adj_mmap(rowptr, col, subset: torch.Tensor, num_neighbors: int, replace: bool = False):
     rowptr, col, n_id, e_id = torch.ops.torch_sparse.sample_adj(                                         
     rowptr, col, subset, num_neighbors, replace)                                                         
@@ -105,7 +114,8 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
         adjs = []
         n_id = batch
         for size in self.sizes:
-            adj_t, n_id, num_hit, num_miss = sample_adj_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
+            # adj_t, n_id, num_hit, num_miss = sample_adj_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
+            adj_t, n_id, num_hit, num_miss = sample_adj_ginex_compression(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
 
             self.num_hit += num_hit
             self.num_miss += num_miss
