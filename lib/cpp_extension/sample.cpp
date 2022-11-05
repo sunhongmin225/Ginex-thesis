@@ -10,9 +10,6 @@
 #include <omp.h>
 #include <stdio.h>
 #include <zstd.h>
-extern "C" {
-    #include "lz4.h"
-}
 #include <vector>
 #define ALIGNMENT 4096
 
@@ -94,13 +91,14 @@ sample_adj_ginex_compression(torch::Tensor rowptr, std::string col_file, torch::
 
     for (int64_t i = 0; i < idx.numel(); i++) {
       n = idx_data[i];
-      cache_entry = cache_table_data[3 * n]; // start_offset
+      cache_entry = cache_table_data[2 * n]; // start_offset
+
       if (cache_entry >= 0){
-          row_count = cache_table_data[3 * n + 2]; // number of neighbors of the node
-          int src_size = row_count * sizeof(int64_t);
-          int compressed_data_size = cache_table_data[3 * n + 1];
+          int compressed_data_size = cache_table_data[2 * n + 1];
+          unsigned long long const src_size = ZSTD_getFrameContentSize((char*) (cache_data) + cache_entry, compressed_data_size);
+          row_count = src_size / sizeof(int64_t); // number of neighbors of the node
           int64_t* regen_buffer = (int64_t*) malloc(src_size);
-          int decompressed_size = LZ4_decompress_safe((char*) (cache_data) + cache_entry, (char*) regen_buffer, compressed_data_size, src_size);
+          int decompressed_size = ZSTD_decompress(regen_buffer, src_size, (char*) (cache_data) + cache_entry, compressed_data_size);
 
           for (int64_t j = 0; j < row_count; j++){
             e = j;
@@ -146,13 +144,14 @@ sample_adj_ginex_compression(torch::Tensor rowptr, std::string col_file, torch::
 
     for (int64_t i = 0; i < idx.numel(); i++) {
       n = idx_data[i];
-      cache_entry = cache_table_data[3 * n]; // start_offset
+      cache_entry = cache_table_data[2 * n]; // start_offset
+      
       if (cache_entry >= 0){
-          row_count = cache_table_data[3 * n + 2]; // number of neighbors of the node
-          int src_size = row_count * sizeof(int64_t);
-          int compressed_data_size = cache_table_data[3 * n + 1];
+          int compressed_data_size = cache_table_data[2 * n + 1];
+          unsigned long long const src_size = ZSTD_getFrameContentSize((char*) (cache_data) + cache_entry, compressed_data_size);
+          row_count = src_size / sizeof(int64_t); // number of neighbors of the node
           int64_t* regen_buffer = (int64_t*) malloc(src_size);
-          int decompressed_size = LZ4_decompress_safe((char*) (cache_data) + cache_entry, (char*) regen_buffer, compressed_data_size, src_size);
+          int decompressed_size = ZSTD_decompress(regen_buffer, src_size, (char*) (cache_data) + cache_entry, compressed_data_size);
 
           for (int64_t j = 0; j < num_neighbors; j++){
             e = rand() % row_count;
@@ -196,15 +195,15 @@ sample_adj_ginex_compression(torch::Tensor rowptr, std::string col_file, torch::
 
     for (int64_t i = 0; i < idx.numel(); i++) {
       n = idx_data[i];
-      cache_entry = cache_table_data[3 * n]; // start_offset
+      cache_entry = cache_table_data[2 * n]; // start_offset
 
       if (cache_entry >= 0){
           num_hit++;
-          row_count = cache_table_data[3 * n + 2]; // number of neighbors of the node
-          int src_size = row_count * sizeof(int64_t);
-          int compressed_data_size = cache_table_data[3 * n + 1];
+          int compressed_data_size = cache_table_data[2 * n + 1];
+          unsigned long long const src_size = ZSTD_getFrameContentSize((char*) (cache_data) + cache_entry, compressed_data_size);
+          row_count = src_size / sizeof(int64_t); // number of neighbors of the node
           int64_t* regen_buffer = (int64_t*) malloc(src_size);
-          int decompressed_size = LZ4_decompress_safe((char*) (cache_data) + cache_entry, (char*) regen_buffer, compressed_data_size, src_size);
+          int decompressed_size = ZSTD_decompress(regen_buffer, src_size, (char*) (cache_data) + cache_entry, compressed_data_size);
 
           if (row_count > 0){
               std::unordered_set<int64_t> perm;
@@ -642,31 +641,6 @@ get_neighbors(torch::Tensor rowptr, std::string col_file, torch::Tensor idx) {
   return out_n_id;
 }
 
-void lz4_sample() {
-    int num_elems = 7;
-    int64_t* src_int = (int64_t*) malloc(num_elems * sizeof(int64_t));
-    src_int[0] = 123123124;
-    src_int[1] = 334234;
-    src_int[2] = 454365346;
-    src_int[3] = 23123123;
-    src_int[4] = 3423423;
-    src_int[5] = 123123123;
-    src_int[6] = 5454552342;
-
-    for (int i = 0; i < num_elems; i++)
-      printf("src_int[%d] = %ld\n", i, src_int[i]);
-
-    const int src_size = num_elems * sizeof(int64_t);
-    const int max_dst_size = LZ4_compressBound(src_size);
-    int64_t* compressed_data = (int64_t*) malloc((size_t)max_dst_size);
-    const int compressed_data_size = LZ4_compress_default((const char*) src_int, (char*) compressed_data, src_size, max_dst_size);
-    compressed_data = (int64_t *) realloc(compressed_data, (size_t)compressed_data_size);
-
-    printf("We successfully compressed some data! Ratio: %.2f\n", (float) compressed_data_size/src_size);
-
-    free(src_int);
-    free(compressed_data);
-}
 
 void fill_neighbor_cache(torch::Tensor cache, torch::Tensor rowptr, std::string col, 
                 torch::Tensor cached_idx, torch::Tensor cache_table, int64_t num_entries) {
@@ -695,8 +669,7 @@ void fill_neighbor_cache(torch::Tensor cache, torch::Tensor rowptr, std::string 
         cache_data[position] = num_neighbors;
         memcpy(cache_data+position+1, (int64_t*)neighbors.data_ptr(), num_neighbors*sizeof(int64_t));
         // memcpy(cache_data+position+1, (int32_t*)neighbors.data_ptr(), num_neighbors*sizeof(int32_t));
-    }   
-    // lz4_sample();
+    }
     return;
 }
 
