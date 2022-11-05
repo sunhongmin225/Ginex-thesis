@@ -9,3 +9,5 @@ dataset
 multiple_ptrs_lz4
 single_ptr_lz4
 lz4_decomp_and_valid_check
+multiple_ptrs_zstd
+single_ptr_zstd
