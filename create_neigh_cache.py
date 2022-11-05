@@ -26,19 +26,21 @@ def save_neighbor_cache():
     score = dataset.get_score()
     rowptr, col = dataset.get_adj_mat()
     num_nodes = dataset.num_nodes
-    lz4_comp_ratio = 1.36
-    nctbl_size_in_bytes = num_nodes * 3 * 8
-    nc_size_in_bytes = math.floor((args.neigh_cache_size - nctbl_size_in_bytes) * 1.36) + num_nodes * 8
-    metadata_filename = str(dataset_path) + '/metadata_size_' + str(args.neigh_cache_size) + '.txt'
-    cache_filename = str(dataset_path) + '/nc_size_' + str(args.neigh_cache_size) + '.dat.lz4'
-    cache_tbl_filename = str(dataset_path) + '/nctbl_size_' + str(args.neigh_cache_size) + '_lz4.dat'
+    zstd_comp_ratio = 2.00
+    nctbl_size_in_bytes = num_nodes * 2 * 8
+    nc_size_in_bytes = math.floor((args.neigh_cache_size - nctbl_size_in_bytes) * zstd_comp_ratio) + num_nodes * 8
+    metadata_filename = str(dataset_path) + '/zstd_metadata_size_' + str(args.neigh_cache_size) + '.txt'
+    cache_filename = str(dataset_path) + '/nc_size_' + str(args.neigh_cache_size) + '.dat.zstd'
+    cache_tbl_filename = str(dataset_path) + '/nctbl_size_' + str(args.neigh_cache_size) + '_zstd.dat'
     neighbor_cache = NeighborCache(nc_size_in_bytes, score, rowptr, dataset.indices_path, num_nodes, metadata_filename, cache_filename, cache_tbl_filename)
     del(score)
     print('Done!')
 
     # print('Saving neighbor cache...')
-    # neighbor_cache.save(neighbor_cache.cache.numpy(), cache_filename)
-    # neighbor_cache.save(neighbor_cache.address_table.numpy(), cache_tbl_filename)
+    # orig_cache_filename = str(dataset_path) + '/nc_size_' + str(nc_size_in_bytes) + '_orig'
+    # orig_cache_tbl_filename = str(dataset_path) + '/nctbl_size_' + str(nc_size_in_bytes) + '_orig'
+    # neighbor_cache.save(neighbor_cache.cache.numpy(), orig_cache_filename)
+    # neighbor_cache.save(neighbor_cache.address_table.numpy(), orig_cache_tbl_filename)
     # print('Done!')
     # import pdb; pdb.set_trace()
 

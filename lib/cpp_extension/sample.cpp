@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include <omp.h>
 #include <stdio.h>
+#include <zstd.h>
 extern "C" {
     #include "lz4.h"
 }
@@ -703,7 +704,7 @@ void fill_neighbor_cache(torch::Tensor cache, torch::Tensor rowptr, std::string 
 void compress_neighbor_cache(torch::Tensor ginex_cache, torch::Tensor ginex_cache_table, int64_t num_nodes, std::string metadata_filename, std::string cache_filename, std::string cache_tbl_filename) {
     int64_t* ginex_cache_data = ginex_cache.data_ptr<int64_t>();
     int64_t* ginex_cache_table_data = ginex_cache_table.data_ptr<int64_t>();
-    int64_t* my_cache_table_data = (int64_t*) malloc(num_nodes * 3 * sizeof(int64_t));
+    int64_t* my_cache_table_data = (int64_t*) malloc(num_nodes * 2 * sizeof(int64_t));
 
     FILE *my_cache_f;
     my_cache_f = fopen(cache_filename.c_str(), "wb");
@@ -712,9 +713,8 @@ void compress_neighbor_cache(torch::Tensor ginex_cache, torch::Tensor ginex_cach
     for (int64_t i = 0; i < num_nodes; i++) {
       int64_t ginex_cache_idx = ginex_cache_table_data[i];
       if (ginex_cache_idx == -1) {
-        my_cache_table_data[i * 3] = -1;
-        my_cache_table_data[i * 3 + 1] = 0; // don't care
-        my_cache_table_data[i * 3 + 2] = 0; // don't care
+        my_cache_table_data[i * 2] = -1;
+        my_cache_table_data[i * 2 + 1] = 0; // don't care
       } else {
         int64_t num_neighbors = ginex_cache_data[ginex_cache_idx];
         int64_t* src_int64 = (int64_t*) malloc(num_neighbors * sizeof(int64_t));
@@ -722,14 +722,13 @@ void compress_neighbor_cache(torch::Tensor ginex_cache, torch::Tensor ginex_cach
           src_int64[j - 1] = ginex_cache_data[ginex_cache_idx + j];
         }
         int src_size = num_neighbors * sizeof(int64_t);
-        int max_dst_size = LZ4_compressBound(src_size);
+        int max_dst_size = ZSTD_compressBound(src_size);
         int64_t* compressed_data = (int64_t*) malloc((size_t) max_dst_size);
-        int compressed_data_size = LZ4_compress_default((const char*) src_int64, (char*) compressed_data, src_size, max_dst_size);
+        int compressed_data_size = ZSTD_compress(compressed_data, max_dst_size, src_int64, src_size, 1);
         compressed_data = (int64_t *) realloc(compressed_data, (size_t) compressed_data_size);
         
-        my_cache_table_data[i * 3] = start_offset;
-        my_cache_table_data[i * 3 + 1] = (int64_t) compressed_data_size;
-        my_cache_table_data[i * 3 + 2] = num_neighbors;
+        my_cache_table_data[i * 2] = start_offset;
+        my_cache_table_data[i * 2 + 1] = (int64_t) compressed_data_size;
         start_offset += compressed_data_size;
 
         fwrite(compressed_data, 1, compressed_data_size, my_cache_f);
@@ -743,14 +742,14 @@ void compress_neighbor_cache(torch::Tensor ginex_cache, torch::Tensor ginex_cach
 
     FILE *my_metadata_f;
     my_metadata_f = fopen(metadata_filename.c_str(), "w");
-    int64_t my_cache_table_numel = num_nodes * 3;
+    int64_t my_cache_table_numel = num_nodes * 2;
     int64_t my_cache_numel = start_offset / sizeof(int8_t);
     fprintf(my_metadata_f, "%ld\n%ld\n", my_cache_table_numel, my_cache_numel);
     fclose(my_metadata_f);
 
     FILE *my_cache_table_f;
     my_cache_table_f = fopen(cache_tbl_filename.c_str(), "wb");
-    int64_t my_cache_table_size = num_nodes * 3 * sizeof(int64_t);
+    int64_t my_cache_table_size = num_nodes * 2 * sizeof(int64_t);
     fwrite(my_cache_table_data, 1, my_cache_table_size, my_cache_table_f);
     fclose(my_cache_table_f);
 
