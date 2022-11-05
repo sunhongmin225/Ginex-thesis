@@ -11,3 +11,4 @@ single_ptr_lz4
 lz4_decomp_and_valid_check
 multiple_ptrs_zstd
 single_ptr_zstd
+zstd_decomp_and_valid_check
