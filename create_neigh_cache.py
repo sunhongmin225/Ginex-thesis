@@ -27,7 +27,7 @@ def save_neighbor_cache():
     rowptr, col = dataset.get_adj_mat()
     num_nodes = dataset.num_nodes
     zstd_comp_ratio = 2.00
-    nctbl_size_in_bytes = num_nodes * 2 * 8
+    nctbl_size_in_bytes = num_nodes * 3 * 8
     nc_size_in_bytes = math.floor((args.neigh_cache_size - nctbl_size_in_bytes) * zstd_comp_ratio) + num_nodes * 8
     metadata_filename = str(dataset_path) + '/zstd_metadata_size_' + str(args.neigh_cache_size) + '.txt'
     cache_filename = str(dataset_path) + '/nc_size_' + str(args.neigh_cache_size) + '.dat.zstd'
