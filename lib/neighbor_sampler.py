@@ -69,7 +69,7 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
             `torch.utils.data.DataLoader`, such as `batch_size`,
             `shuffle`, `drop_last`m `num_workers`.
     '''
-    def __init__(self, indptr, indices, num_hit, num_miss, exp_name, sb,
+    def __init__(self, indptr, indices, num_hit, num_miss, is_zstd, exp_name, sb,
                  sizes: List[int], node_idx: Tensor,
                  cache_data = None, address_table = None,
                  num_nodes: Optional[int] = None,
@@ -88,6 +88,7 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
         self.num_nodes = num_nodes
         self.num_hit = num_hit
         self.num_miss = num_miss
+        self.is_zstd = is_zstd
 
         self.cache_data = cache_data
         self.address_table = address_table
@@ -114,8 +115,10 @@ class GinexNeighborSampler(torch.utils.data.DataLoader):
         adjs = []
         n_id = batch
         for size in self.sizes:
-            # adj_t, n_id, num_hit, num_miss = sample_adj_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
-            adj_t, n_id, num_hit, num_miss = sample_adj_ginex_compression(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
+            if self.is_zstd:
+                adj_t, n_id, num_hit, num_miss = sample_adj_ginex_compression(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
+            else:
+                adj_t, n_id, num_hit, num_miss = sample_adj_ginex(self.indptr, self.indices, n_id, size, False, self.cache_data, self.address_table)
 
             self.num_hit += num_hit
             self.num_miss += num_miss

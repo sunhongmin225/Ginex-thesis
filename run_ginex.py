@@ -34,6 +34,7 @@ argparser.add_argument('--neigh-cache-size', type=int, default=45000000000)
 argparser.add_argument('--ginex-num-threads', type=int, default=os.cpu_count()*8)
 argparser.add_argument('--verbose', dest='verbose', default=False, action='store_true')
 argparser.add_argument('--train-only', dest='train_only', default=False, action='store_true')
+argparser.add_argument('--zstd', dest='zstd', default=False, action='store_true')
 args = argparser.parse_args()
 
 # Set args/environment variables/path
@@ -86,6 +87,9 @@ cache_end = torch.cuda.Event(enable_timing=True)
 free_start = torch.cuda.Event(enable_timing=True)
 free_end = torch.cuda.Event(enable_timing=True)
 
+sb_sample_times = []
+pass_1_and_2_times = []
+pass_3_times = []
 sampling_times = []
 gather_times = []
 cache_times = []
@@ -93,7 +97,6 @@ transfer_times = []
 forward_times = []
 backward_times = []
 free_times = []
-
 
 def inspect(i, last, mode='train'):
     # Same effect of `sysctl -w vm.drop_caches=1`
@@ -122,6 +125,7 @@ def inspect(i, last, mode='train'):
         iterptr, iters, initial_cache_indices = cache.pass_1_and_2()
         end = time.time()
         print('[run_ginex.py] pass_1_and_2 time =', end - start)
+        pass_1_and_2_times.append(end - start)
         
         # Only changset precomputation at the last superbatch in epoch
         if last:
@@ -132,26 +136,30 @@ def inspect(i, last, mode='train'):
             torch.cuda.empty_cache()
 
     # Load neighbor cache
-    metadata_path = str(dataset_path) + '/zstd_metadata_size_' + str(args.neigh_cache_size) + '.txt'
-    metadata_f = open(metadata_path, 'r')
-    metadatas = metadata_f.readlines()
-    neighbor_cachetable_numel = int(metadatas[0])
-    neighbor_cache_numel = int(metadatas[1])
-    metadata_f.close()
-    neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_zstd.dat'
-    # neighbor_cachetable_conf_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
-    # neighbor_cachetable_numel = json.load(open(neighbor_cachetable_conf_path, 'r'))['shape'][0]
-    neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat.zstd'
-    # neighbor_cache_conf_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
-    # neighbor_cache_numel = json.load(open(neighbor_cache_conf_path, 'r'))['shape'][0]
-    neighbor_cachetable = load_int64(neighbor_cachetable_path, neighbor_cachetable_numel)
-    neighbor_cache = load_int8(neighbor_cache_path, neighbor_cache_numel)
-
-    # import pdb; pdb.set_trace()
+    if args.zstd:
+        metadata_path = str(dataset_path) + '/zstd_metadata_size_' + str(args.neigh_cache_size) + '.txt'
+        metadata_f = open(metadata_path, 'r')
+        metadatas = metadata_f.readlines()
+        neighbor_cachetable_numel = int(metadatas[0])
+        neighbor_cache_numel = int(metadatas[1])
+        metadata_f.close()
+        neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_zstd.dat'
+        neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat.zstd'
+        neighbor_cachetable = load_int64(neighbor_cachetable_path, neighbor_cachetable_numel)
+        neighbor_cache = load_int8(neighbor_cache_path, neighbor_cache_numel)
+    else:
+        neighbor_cache_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '.dat'
+        neighbor_cache_conf_path = str(dataset_path) + '/nc' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
+        neighbor_cache_numel = json.load(open(neighbor_cache_conf_path, 'r'))['shape'][0]
+        neighbor_cachetable_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '.dat'
+        neighbor_cachetable_conf_path = str(dataset_path) + '/nctbl' + '_size_' + str(args.neigh_cache_size) + '_conf.json'
+        neighbor_cachetable_numel = json.load(open(neighbor_cachetable_conf_path, 'r'))['shape'][0]
+        neighbor_cache = load_int64(neighbor_cache_path, neighbor_cache_numel)
+        neighbor_cachetable = load_int64(neighbor_cachetable_path, neighbor_cachetable_numel)
 
     start_idx = i * args.batch_size * args.sb_size 
     end_idx = min((i+1) * args.batch_size * args.sb_size, node_idx.numel())
-    loader = GinexNeighborSampler(indptr, dataset.indices_path, num_hit, num_miss, args.exp_name, i, node_idx=node_idx[start_idx:end_idx],
+    loader = GinexNeighborSampler(indptr, dataset.indices_path, num_hit, num_miss, args.zstd, args.exp_name, i, node_idx=node_idx[start_idx:end_idx],
                                        sizes=sizes, num_nodes = num_nodes,
                                        cache_data = neighbor_cache, address_table = neighbor_cachetable,
                                        batch_size=args.batch_size,
@@ -164,8 +172,10 @@ def inspect(i, last, mode='train'):
             cache.pass_3(iterptr, iters, initial_cache_indices)
             end = time.time()
             print('[run_ginex.py] pass_3 time =', end - start)
+            pass_3_times.append(end - start)
     sb_sample_end = time.time()
     print('[run_ginex.py] sb_sample time =', sb_sample_end - sb_sample_start)
+    sb_sample_times.append(sb_sample_end - sb_sample_start)
 
     # sb_sample_start = time.time()
     # for step, _ in enumerate(loader):
@@ -484,7 +494,17 @@ def train(epoch):
         if args.verbose:
             tqdm.write ('Step 3: Done')
 
-        print ('Total stat')
+        print ('=========================== Total Stat ===========================')
+        print ('dataset: {}, sb-size: {}, batch-size: {}, nc-size: {}GB, fc-size: {}GB, zstd: {}, khop: {}'.format(args.dataset, args.sb_size, args.batch_size, args.neigh_cache_size / 1000000000.0, args.feature_cache_size / 1000000000.0, args.zstd, args.khop))
+        print ('Part 1: sb_sample_times pass_1_and_2_times pass_3_times')
+        for sb_sample_time in sb_sample_times:
+            print ('{:.4f}'.format(sb_sample_time/1000.0))
+        for pass_1_and_2_time in pass_1_and_2_times:
+            print ('{:.4f}'.format(pass_1_and_2_time/1000.0))
+        for pass_3_time in pass_3_times:
+            print ('{:.4f}'.format(pass_3_time/1000.0))
+        print ('==================================================================')
+        print ('Part 2: inspect_time switch_time sampling_time gather_time cache_time transfer_time forward_time backward_time free_time')
         print ('{:.4f}'.format(inspect_time/1000.0))
         print ('{:.4f}'.format(switch_time/1000.0))
         print ('{:.4f}'.format(sum(sampling_times)/1000.0))
@@ -494,6 +514,8 @@ def train(epoch):
         print ('{:.4f}'.format(sum(forward_times)/1000.0))
         print ('{:.4f}'.format(sum(backward_times)/1000.0))
         print ('{:.4f}'.format(sum(free_times)/1000.0))
+        print ('==================================================================')
+        print ('Current superbatch ended')
 
         # Delete obsolete runtime files
         # delete_trace(i)
