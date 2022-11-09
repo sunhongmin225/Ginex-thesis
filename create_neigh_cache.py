@@ -29,7 +29,14 @@ def save_neighbor_cache():
     num_nodes = dataset.num_nodes
 
     if args.zstd:
-        zstd_comp_ratio = 2.00
+        if args.dataset == 'ogbn_papers_extended':
+            zstd_comp_ratio = 1.42 # 1.42: 44806667535
+        elif args.dataset == 'ogbn_products_extended':
+            zstd_comp_ratio = 1.92 # 1.92: 44983879767
+        elif args.dataset == 'friendster_extended':
+            zstd_comp_ratio = 1.85 # 1.85: 44884254015
+        elif args.dataset == 'twitter_extended_6':
+            zstd_comp_ratio = 1.76 # 1.76: 44935101270
         nctbl_size_in_bytes = num_nodes * 2 * 8
         nc_size_in_bytes = math.floor((args.neigh_cache_size - nctbl_size_in_bytes) * zstd_comp_ratio) + num_nodes * 8
         metadata_filename = str(dataset_path) + '/zstd_metadata_size_' + str(args.neigh_cache_size) + '.txt'
