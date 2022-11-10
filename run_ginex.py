@@ -498,11 +498,11 @@ def train(epoch):
         print ('dataset: {}, sb-size: {}, batch-size: {}, nc-size: {}GB, fc-size: {}GB, zstd: {}, khop: {}'.format(args.dataset, args.sb_size, args.batch_size, args.neigh_cache_size / 1000000000.0, args.feature_cache_size / 1000000000.0, args.zstd, args.khop))
         print ('Part 1: sb_sample_times pass_1_and_2_times pass_3_times')
         for sb_sample_time in sb_sample_times:
-            print ('{:.4f}'.format(sb_sample_time/1000.0))
+            print ('{:.4f}'.format(sb_sample_time))
         for pass_1_and_2_time in pass_1_and_2_times:
-            print ('{:.4f}'.format(pass_1_and_2_time/1000.0))
+            print ('{:.4f}'.format(pass_1_and_2_time))
         for pass_3_time in pass_3_times:
-            print ('{:.4f}'.format(pass_3_time/1000.0))
+            print ('{:.4f}'.format(pass_3_time))
         print ('==================================================================')
         print ('Part 2: inspect_time switch_time sampling_time gather_time cache_time transfer_time forward_time backward_time free_time')
         print ('{:.4f}'.format(inspect_time/1000.0))
