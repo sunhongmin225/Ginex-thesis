@@ -1,0 +1,77 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 11 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 125.36038374900818
+Step 1: Done
+inspect_time = 142936.78125
+Running 1th superbatch of total 11 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 10.764361381530762
+[run_ginex.py] pass_1_and_2 time = 10.764403581619263
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 25.904207706451416
+[run_ginex.py] pass_3 time = 25.90432620048523
+[run_ginex.py] sb_sample time = 129.8543200492859
+Step 1: Done
+inspect_time = 159480.21875
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.06665600091218948
+gather:  126.10176086425781
+cache:  0.02723200060427189
+transfer:  203.43795776367188
+forward:  316.918212890625
+backward:  216.80026245117188
+free:  4.299583911895752
+1000
+sampling:  0.1674560010433197
+gather:  149.5048370361328
+cache:  0.035711999982595444
+transfer:  47.67513656616211
+forward:  3.0135040283203125
+backward:  1.8636480569839478
+free:  0.2516799867153168
+2000
+sampling:  0.10735999792814255
+gather:  108.83952331542969
+cache:  0.031007999554276466
+transfer:  43.34096145629883
+forward:  3.008608102798462
+backward:  1.9067200422286987
+free:  0.21167999505996704
+Step 3: Done
+=========================== Total Stat ===========================
+dataset: ogbn_products_extended, sb-size: 2200, batch-size: 1000, nc-size: 45.0GB, fc-size: 50.0GB, zstd: True, khop: 8
+Part 1: sb_sample_times pass_1_and_2_times pass_3_times
+125.3604
+129.8543
+10.7644
+25.9043
+==================================================================
+Part 2: inspect_time switch_time sampling_time gather_time cache_time transfer_time forward_time backward_time free_time
+159.4802
+79.7228
+0.7161
+253.4634
+17.7155
+100.6898
+6.9075
+4.3285
+33.0880
+==================================================================
+Current superbatch ended
+Epoch 00, Loss: 0.0003, Approx. Train: 0.0998
+Epoch time: 806238.7533 ms

@@ -1,0 +1,149 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 4 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 254.90924334526062
+Step 1: Done
+inspect_time = 272886.0625
+Running 1th superbatch of total 4 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 37.484375953674316
+[run_ginex.py] pass_1_and_2 time = 37.48443102836609
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 771.5382263660431
+[run_ginex.py] pass_3 time = 771.5388607978821
+[run_ginex.py] sb_sample time = 841.2044334411621
+Step 1: Done
+inspect_time = 899309.1875
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.15904000401496887
+gather:  195.90284729003906
+cache:  42.141727447509766
+transfer:  148.90634155273438
+forward:  304.6608581542969
+backward:  222.08204650878906
+free:  37.40095901489258
+1000
+sampling:  0.1907840073108673
+gather:  119.1488037109375
+cache:  5.104671955108643
+transfer:  28.044511795043945
+forward:  2.2804479598999023
+backward:  1.5380480289459229
+free:  6.778719902038574
+2000
+sampling:  0.1936960071325302
+gather:  80.73094177246094
+cache:  5.2836480140686035
+transfer:  32.20073699951172
+forward:  3.071712017059326
+backward:  2.7115519046783447
+free:  8.53711986541748
+3000
+sampling:  0.151296004652977
+gather:  90.22169494628906
+cache:  4.244736194610596
+transfer:  28.407520294189453
+forward:  2.3548479080200195
+backward:  1.5472960472106934
+free:  6.67519998550415
+4000
+sampling:  0.1432960033416748
+gather:  95.49244689941406
+cache:  3.8931519985198975
+transfer:  29.16067123413086
+forward:  2.327199935913086
+backward:  1.7346559762954712
+free:  7.1717119216918945
+5000
+sampling:  0.18822400271892548
+gather:  88.3677749633789
+cache:  4.304992198944092
+transfer:  28.100767135620117
+forward:  2.4099841117858887
+backward:  1.6680959463119507
+free:  6.875552177429199
+6000
+sampling:  0.17827199399471283
+gather:  88.02738952636719
+cache:  4.669248104095459
+transfer:  26.94806480407715
+forward:  2.3544321060180664
+backward:  2.2415359020233154
+free:  8.166399955749512
+7000
+sampling:  0.23689599335193634
+gather:  109.07820892333984
+cache:  6.2620158195495605
+transfer:  30.449663162231445
+forward:  2.4443199634552
+backward:  1.8872319459915161
+free:  6.975456237792969
+8000
+sampling:  0.2529279887676239
+gather:  97.75923156738281
+cache:  4.082687854766846
+transfer:  27.56537628173828
+forward:  2.310080051422119
+backward:  1.7111040353775024
+free:  6.950528144836426
+9000
+sampling:  0.2011519968509674
+gather:  94.47792053222656
+cache:  4.3368000984191895
+transfer:  27.817535400390625
+forward:  2.349503993988037
+backward:  1.6875519752502441
+free:  7.011648178100586
+10000
+sampling:  0.15404799580574036
+gather:  97.0761947631836
+cache:  4.8891520500183105
+transfer:  29.51100730895996
+forward:  2.3872320652008057
+backward:  1.5063040256500244
+free:  7.018080234527588
+11000
+sampling:  0.15775999426841736
+gather:  98.08354949951172
+cache:  4.927743911743164
+transfer:  25.579391479492188
+forward:  2.281536102294922
+backward:  1.5001599788665771
+free:  6.887231826782227
+Step 3: Done
+=========================== Total Stat ===========================
+dataset: ogbn_papers_extended, sb-size: 12000, batch-size: 1000, nc-size: 45.0GB, fc-size: 50.0GB, zstd: False, khop: 1
+Part 1: sb_sample_times pass_1_and_2_times pass_3_times
+254.9092
+841.2044
+37.4844
+771.5389
+==================================================================
+Part 2: inspect_time switch_time sampling_time gather_time cache_time transfer_time forward_time backward_time free_time
+899.3092
+94.2992
+2.1566
+1171.8939
+78.0757
+340.7105
+28.7689
+22.2104
+89.3887
+==================================================================
+Current superbatch ended
+Epoch 00, Loss: 0.0001, Approx. Train: 0.2701
+Epoch time: 3051805.6056 ms

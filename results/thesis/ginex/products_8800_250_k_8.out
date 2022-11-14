@@ -1,0 +1,125 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 11 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 195.1990818977356
+Step 1: Done
+inspect_time = 212612.75
+Running 1th superbatch of total 11 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 14.360904693603516
+[run_ginex.py] pass_1_and_2 time = 14.360949039459229
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 382.51739740371704
+[run_ginex.py] pass_3 time = 382.5174767971039
+[run_ginex.py] sb_sample time = 428.48001742362976
+Step 1: Done
+inspect_time = 460987.46875
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.10652799904346466
+gather:  67.90214538574219
+cache:  14.252415657043457
+transfer:  188.3431396484375
+forward:  251.49449157714844
+backward:  214.73997497558594
+free:  34.19257736206055
+1000
+sampling:  0.09120000153779984
+gather:  52.819358825683594
+cache:  5.265024185180664
+transfer:  11.482560157775879
+forward:  1.5318080186843872
+backward:  1.7428480386734009
+free:  3.7291839122772217
+2000
+sampling:  0.13072000443935394
+gather:  42.234622955322266
+cache:  2.188767910003662
+transfer:  11.22332763671875
+forward:  1.54476797580719
+backward:  1.6476160287857056
+free:  3.877408027648926
+3000
+sampling:  0.07475200295448303
+gather:  27.243616104125977
+cache:  1.9266560077667236
+transfer:  12.26425552368164
+forward:  2.2565760612487793
+backward:  1.785856008529663
+free:  3.676800012588501
+4000
+sampling:  0.0854400023818016
+gather:  45.702945709228516
+cache:  3.2857279777526855
+transfer:  9.423168182373047
+forward:  1.3261439800262451
+backward:  2.4545280933380127
+free:  5.484096050262451
+5000
+sampling:  0.09247999638319016
+gather:  29.125823974609375
+cache:  2.0811519622802734
+transfer:  10.458687782287598
+forward:  1.5667519569396973
+backward:  4.039648056030273
+free:  3.784575939178467
+6000
+sampling:  0.11721599847078323
+gather:  22.38275146484375
+cache:  2.1203839778900146
+transfer:  11.042240142822266
+forward:  1.5864319801330566
+backward:  1.9333120584487915
+free:  4.330207824707031
+7000
+sampling:  0.12080000340938568
+gather:  36.832767486572266
+cache:  2.5154240131378174
+transfer:  10.37183952331543
+forward:  1.4656319618225098
+backward:  1.6353280544281006
+free:  3.5451200008392334
+8000
+sampling:  0.13660800457000732
+gather:  28.550783157348633
+cache:  2.6057279109954834
+transfer:  11.316160202026367
+forward:  1.7287360429763794
+backward:  1.622048020362854
+free:  3.420896053314209
+Step 3: Done
+=========================== Total Stat ===========================
+dataset: ogbn_products_extended, sb-size: 8800, batch-size: 250, nc-size: 45.0GB, fc-size: 50.0GB, zstd: False, khop: 1
+Part 1: sb_sample_times pass_1_and_2_times pass_3_times
+195.1991
+428.4800
+14.3609
+382.5175
+==================================================================
+Part 2: inspect_time switch_time sampling_time gather_time cache_time transfer_time forward_time backward_time free_time
+460.9875
+82.4629
+0.8371
+277.1581
+29.6744
+98.1379
+15.1453
+19.5226
+36.3523
+==================================================================
+Current superbatch ended
+Epoch 00, Loss: 0.0001, Approx. Train: 0.0998
+Epoch time: 1260362.3533 ms

@@ -1,0 +1,149 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 4 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 207.73172044754028
+Step 1: Done
+inspect_time = 225515.0625
+Running 1th superbatch of total 4 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 40.927984952926636
+[run_ginex.py] pass_1_and_2 time = 40.92807459831238
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 157.23348689079285
+[run_ginex.py] pass_3 time = 157.2339026927948
+[run_ginex.py] sb_sample time = 249.5381100177765
+Step 1: Done
+inspect_time = 312253.875
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.14451199769973755
+gather:  178.5980224609375
+cache:  0.05651199817657471
+transfer:  216.6038360595703
+forward:  326.1394348144531
+backward:  255.21971130371094
+free:  23.019424438476562
+1000
+sampling:  0.3004480004310608
+gather:  127.46934509277344
+cache:  0.1379839926958084
+transfer:  31.130464553833008
+forward:  2.3429439067840576
+backward:  1.6558079719543457
+free:  0.24726399779319763
+2000
+sampling:  0.28543999791145325
+gather:  76.26515197753906
+cache:  0.1268160045146942
+transfer:  28.54140853881836
+forward:  2.388159990310669
+backward:  2.579456090927124
+free:  0.3671039938926697
+3000
+sampling:  0.19923199713230133
+gather:  85.77490997314453
+cache:  0.0790719985961914
+transfer:  27.2108154296875
+forward:  2.4231998920440674
+backward:  3.2624640464782715
+free:  0.3694719970226288
+4000
+sampling:  0.18614399433135986
+gather:  92.58902740478516
+cache:  0.5108479857444763
+transfer:  29.1562557220459
+forward:  2.4426560401916504
+backward:  2.2968320846557617
+free:  0.3222399950027466
+5000
+sampling:  0.5012800097465515
+gather:  82.47126770019531
+cache:  0.049855999648571014
+transfer:  28.602880477905273
+forward:  2.4123520851135254
+backward:  2.3490560054779053
+free:  0.2561280131340027
+6000
+sampling:  0.19526399672031403
+gather:  94.67996978759766
+cache:  0.040192000567913055
+transfer:  28.738880157470703
+forward:  2.3532800674438477
+backward:  1.7920000553131104
+free:  0.25414401292800903
+7000
+sampling:  0.2768320143222809
+gather:  98.3214111328125
+cache:  0.051263999193906784
+transfer:  28.5710391998291
+forward:  2.39190411567688
+backward:  2.0992000102996826
+free:  0.2579840123653412
+8000
+sampling:  0.1825920045375824
+gather:  83.6753921508789
+cache:  0.05814399942755699
+transfer:  26.591808319091797
+forward:  2.398144006729126
+backward:  1.7889280319213867
+free:  0.20905600488185883
+9000
+sampling:  0.3118399977684021
+gather:  97.5074234008789
+cache:  0.0589120015501976
+transfer:  29.898208618164062
+forward:  2.37391996383667
+backward:  1.7121280431747437
+free:  0.2553279995918274
+10000
+sampling:  0.2215999960899353
+gather:  97.302978515625
+cache:  0.04265600070357323
+transfer:  29.659616470336914
+forward:  2.3962879180908203
+backward:  1.6291840076446533
+free:  0.29740801453590393
+11000
+sampling:  0.2797439992427826
+gather:  95.99919891357422
+cache:  0.08300799876451492
+transfer:  28.861696243286133
+forward:  2.382175922393799
+backward:  2.225152015686035
+free:  0.26767998933792114
+Step 3: Done
+=========================== Total Stat ===========================
+dataset: ogbn_papers_extended, sb-size: 12000, batch-size: 1000, nc-size: 45.0GB, fc-size: 50.0GB, zstd: True, khop: 8
+Part 1: sb_sample_times pass_1_and_2_times pass_3_times
+207.7317
+249.5381
+40.9281
+157.2339
+==================================================================
+Part 2: inspect_time switch_time sampling_time gather_time cache_time transfer_time forward_time backward_time free_time
+312.2539
+84.1938
+2.5789
+1161.8071
+49.2895
+350.1339
+29.1409
+23.8212
+113.5220
+==================================================================
+Current superbatch ended
+Epoch 00, Loss: 0.0001, Approx. Train: 0.2701
+Epoch time: 2389067.0722 ms

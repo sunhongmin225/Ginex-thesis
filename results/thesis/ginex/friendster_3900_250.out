@@ -1,0 +1,85 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 27 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 43.93612337112427
+Step 1: Done
+inspect_time = 61594.34765625
+Running 1th superbatch of total 27 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 5.982400178909302
+[run_ginex.py] pass_1_and_2 time = 5.982477903366089
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 154.5444324016571
+[run_ginex.py] pass_3 time = 154.54449772834778
+[run_ginex.py] sb_sample time = 200.38188362121582
+Step 1: Done
+inspect_time = 225530.3125
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.1616320013999939
+gather:  45.57215881347656
+cache:  22.804031372070312
+transfer:  235.3726043701172
+forward:  237.87942504882812
+backward:  180.7421417236328
+free:  28.70044708251953
+1000
+sampling:  0.15459200739860535
+gather:  1.9810880422592163
+cache:  0.1512639969587326
+transfer:  7.70688009262085
+forward:  2.476480007171631
+backward:  2.8395519256591797
+free:  2.7910079956054688
+2000
+sampling:  0.09753599762916565
+gather:  28.628223419189453
+cache:  5.895040035247803
+transfer:  6.936863899230957
+forward:  2.139904022216797
+backward:  2.111488103866577
+free:  2.841599941253662
+3000
+sampling:  0.09372799843549728
+gather:  21.444543838500977
+cache:  1.3708479404449463
+transfer:  7.298463821411133
+forward:  1.97433602809906
+backward:  4.386816024780273
+free:  3.5736000537872314
+Step 3: Done
+=========================== Total Stat ===========================
+dataset: friendster_extended, sb-size: 3900, batch-size: 250, nc-size: 45.0GB, fc-size: 50.0GB, zstd: False, khop: 1
+Part 1: sb_sample_times pass_1_and_2_times pass_3_times
+43.9361
+200.3819
+5.9825
+154.5445
+==================================================================
+Part 2: inspect_time switch_time sampling_time gather_time cache_time transfer_time forward_time backward_time free_time
+225.5303
+82.9902
+0.4455
+61.0002
+7.5905
+27.1174
+8.5654
+11.7491
+12.3386
+==================================================================
+Current superbatch ended
+Epoch 00, Loss: 0.0001, Approx. Train: 0.0371
+Epoch time: 514431.6919 ms

@@ -1,0 +1,21 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 3 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 2053.4718658924103
+Step 1: Done
+inspect_time = 2071902.375
+Running 1th superbatch of total 3 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 1515.3783292770386
+[run_ginex.py] pass_1_and_2 time = 1515.379987001419
+Pass 3: Computing changesets...

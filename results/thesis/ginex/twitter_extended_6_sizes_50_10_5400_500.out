@@ -1,0 +1,101 @@
+Preparing dataset...
+Done!
+
+==============================
+Running Epoch 0...
+Running 0th superbatch of total 10 superbatches
+Step 1: Superbatch Sample
+[run_ginex.py] sb_sample time = 67.46152925491333
+Step 1: Done
+inspect_time = 87034.1171875
+Running 1th superbatch of total 10 superbatches
+Step 1: Superbatch Sample
+Loading ids...
+Done!
+Pass 1: calculating frequency and initial cache indices...
+Done!
+Pass 2: making two key data structures (iterptr & iters)...
+Done!
+pass_1_and_2 time = 10.817569732666016
+[run_ginex.py] pass_1_and_2 time = 10.817619800567627
+Pass 3: Computing changesets...
+Done!
+pass_3 time = 210.82973837852478
+[run_ginex.py] pass_3 time = 210.82981538772583
+[run_ginex.py] sb_sample time = 262.6221046447754
+Step 1: Done
+inspect_time = 292111.0
+Step 2: Switch
+Step 2: Done
+Step 3: Main Loop
+0
+sampling:  0.10054399818181992
+gather:  71.77027130126953
+cache:  15.864447593688965
+transfer:  224.3074188232422
+forward:  266.9895935058594
+backward:  184.95896911621094
+free:  32.14524841308594
+1000
+sampling:  0.1770240068435669
+gather:  0.9115840196609497
+cache:  0.8261439800262451
+transfer:  16.003551483154297
+forward:  1.7843519449234009
+backward:  1.516543984413147
+free:  3.7162880897521973
+2000
+sampling:  0.21855999529361725
+gather:  40.36675262451172
+cache:  3.2016959190368652
+transfer:  17.439456939697266
+forward:  2.2838399410247803
+backward:  3.565567970275879
+free:  4.794496059417725
+3000
+sampling:  0.1178240031003952
+gather:  34.971614837646484
+cache:  1.8515839576721191
+transfer:  14.179519653320312
+forward:  5.711328029632568
+backward:  5.854207992553711
+free:  4.943391799926758
+4000
+sampling:  0.15267199277877808
+gather:  33.85279846191406
+cache:  1.4591039419174194
+transfer:  13.93836784362793
+forward:  2.002943992614746
+backward:  2.4821760654449463
+free:  4.247007846832275
+5000
+sampling:  0.2479040026664734
+gather:  32.24700927734375
+cache:  2.514784097671509
+transfer:  17.292064666748047
+forward:  2.095968008041382
+backward:  1.854464054107666
+free:  4.013055801391602
+Step 3: Done
+=========================== Total Stat ===========================
+dataset: twitter_extended_6, sb-size: 5400, batch-size: 500, nc-size: 45.0GB, fc-size: 50.0GB, zstd: False, khop: 1
+Part 1: sb_sample_times pass_1_and_2_times pass_3_times
+67.4615
+262.6221
+10.8176
+210.8298
+==================================================================
+Part 2: inspect_time switch_time sampling_time gather_time cache_time transfer_time forward_time backward_time free_time
+292.1110
+83.8004
+0.7330
+128.0038
+12.2111
+87.9844
+12.9173
+15.3201
+26.8290
+==================================================================
+Current superbatch ended
+Epoch 00, Loss: 0.0002, Approx. Train: 0.1080
+Epoch time: 770403.2218 ms
