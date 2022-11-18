@@ -1,3 +1,27 @@
+cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_papers_extended --sizes 25,10 --sb-size 16000 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 > papers_nc_hit_ratio.out
+cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_papers_extended --sizes 25,10 --sb-size 16000 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 --zstd > papers_nc_hit_ratio_zstd.out
+
+cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_products_extended --sizes 25,10 --sb-size 8800 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 > products_nc_hit_ratio.out
+cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_products_extended --sizes 25,10 --sb-size 8800 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 --zstd > products_nc_hit_ratio_zstd.out
+
+cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset friendster_extended --sizes 25,10 --sb-size 15600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 > friendster_nc_hit_ratio.out
+cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset friendster_extended --sizes 25,10 --sb-size 15600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 --zstd > friendster_nc_hit_ratio_zstd.out
+
+cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset twitter_extended_6 --sizes 25,10 --sb-size 21600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 > twitter_nc_hit_ratio.out
+cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset twitter_extended_6 --sizes 25,10 --sb-size 21600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 --zstd > twitter_nc_hit_ratio_zstd.out
+
+
+# cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_products_extended --sizes 25,10 --sb-size 8800 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 64 > results/thesis/ginex_khop/products_8800_1000_k_64.out
+# cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_products_extended --sizes 25,10 --sb-size 8800 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 128 > results/thesis/ginex_khop/products_8800_1000_k_128.out
+# cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_products_extended --sizes 25,10 --sb-size 8800 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 256 > results/thesis/ginex_khop/products_8800_1000_k_256.out
+
+# cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset friendster_extended --sizes 25,10 --sb-size 15600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 64 > results/thesis/ginex_khop/friendster_15600_1000_k_64.out
+# cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset friendster_extended --sizes 25,10 --sb-size 15600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 128 > results/thesis/ginex_khop/friendster_15600_1000_k_128.out
+# cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset friendster_extended --sizes 25,10 --sb-size 15600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 256 > results/thesis/ginex_khop/friendster_15600_1000_k_256.out
+
+
+
+
 # printf "{\"num_nodes\": 444239824, \"indptr_shape\": [444239825], \"indptr_dtype\": \"int64\", \"indices_shape\": [14244350944], \"indices_dtype\": \"int64\", \"features_shape\": [444239824, 256], \"features_dtype\": \"float32\", \"labels_shape\": [444239824, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_papers_extended-ginex/conf.json
 
 # printf "{\"num_nodes\": 220412610, \"indptr_shape\": [220412611], \"indptr_dtype\": \"int64\", \"indices_shape\": [20243659298], \"indices_dtype\": \"int64\", \"features_shape\": [220412610, 256], \"features_dtype\": \"float32\", \"labels_shape\": [220412610, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_products_extended-ginex/conf.json
@@ -26,17 +50,17 @@
 
 
 
-printf "{\"num_nodes\": 444239824, \"indptr_shape\": [444239825], \"indptr_dtype\": \"int64\", \"indices_shape\": [14244350944], \"indices_dtype\": \"int64\", \"features_shape\": [444239824, 32], \"features_dtype\": \"float32\", \"labels_shape\": [444239824, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_papers_extended-ginex/conf.json
+# printf "{\"num_nodes\": 444239824, \"indptr_shape\": [444239825], \"indptr_dtype\": \"int64\", \"indices_shape\": [14244350944], \"indices_dtype\": \"int64\", \"features_shape\": [444239824, 32], \"features_dtype\": \"float32\", \"labels_shape\": [444239824, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_papers_extended-ginex/conf.json
 
-printf "{\"num_nodes\": 220412610, \"indptr_shape\": [220412611], \"indptr_dtype\": \"int64\", \"indices_shape\": [20243659298], \"indices_dtype\": \"int64\", \"features_shape\": [220412610, 32], \"features_dtype\": \"float32\", \"labels_shape\": [220412610, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_products_extended-ginex/conf.json
+# printf "{\"num_nodes\": 220412610, \"indptr_shape\": [220412611], \"indptr_dtype\": \"int64\", \"indices_shape\": [20243659298], \"indices_dtype\": \"int64\", \"features_shape\": [220412610, 32], \"features_dtype\": \"float32\", \"labels_shape\": [220412610, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_products_extended-ginex/conf.json
 
-printf "{\"num_nodes\": 262433464, \"indptr_shape\": [262433465], \"indptr_dtype\": \"int64\", \"indices_shape\": [15482422866], \"indices_dtype\": \"int64\", \"features_shape\": [262433464, 32], \"features_dtype\": \"float32\", \"labels_shape\": [262433464, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/friendster_extended-ginex/conf.json
+# printf "{\"num_nodes\": 262433464, \"indptr_shape\": [262433465], \"indptr_dtype\": \"int64\", \"indices_shape\": [15482422866], \"indices_dtype\": \"int64\", \"features_shape\": [262433464, 32], \"features_dtype\": \"float32\", \"labels_shape\": [262433464, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/friendster_extended-ginex/conf.json
 
-printf "{\"num_nodes\": 249913380, \"indptr_shape\": [249913381], \"indptr_dtype\": \"int64\", \"indices_shape\": [14634518930], \"indices_dtype\": \"int64\", \"features_shape\": [249913380, 32], \"features_dtype\": \"float32\", \"labels_shape\": [249913380, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/twitter_extended_6-ginex/conf.json
+# printf "{\"num_nodes\": 249913380, \"indptr_shape\": [249913381], \"indptr_dtype\": \"int64\", \"indices_shape\": [14634518930], \"indices_dtype\": \"int64\", \"features_shape\": [249913380, 32], \"features_dtype\": \"float32\", \"labels_shape\": [249913380, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/twitter_extended_6-ginex/conf.json
 
 # cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_papers_extended --sizes 25,10 --sb-size 16000 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 > results/thesis/ginex/papers_16000_1000_fdim_32.out
 
-cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_papers_extended --sizes 25,10 --sb-size 16000 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 8 --zstd > results/thesis/ginex_all/papers_16000_1000_k_8_fdim_32.out
+# cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_papers_extended --sizes 25,10 --sb-size 16000 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 8 --zstd > results/thesis/ginex_all/papers_16000_1000_k_8_fdim_32.out
 
 # cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_products_extended --sizes 25,10 --sb-size 8800 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 > results/thesis/ginex/products_8800_1000_fdim_32.out
 
@@ -47,7 +71,7 @@ cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_papers_exten
 
 # cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset friendster_extended --sizes 25,10 --sb-size 15600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 8 --zstd > results/thesis/ginex_all/friendster_15600_1000_k_8_fdim_32.out
 
-cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset twitter_extended_6 --sizes 25,10 --sb-size 21600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 > results/thesis/ginex/twitter_extended_6_21600_1000_fdim_32.out
+# cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset twitter_extended_6 --sizes 25,10 --sb-size 21600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 1 > results/thesis/ginex/twitter_extended_6_21600_1000_fdim_32.out
 
 # cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset twitter_extended_6 --sizes 25,10 --sb-size 21600 --batch-size 1000 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 8 --zstd > results/thesis/ginex_all/twitter_extended_6_21600_1000_k_8_fdim_32.out
 rm -rf trace/*
@@ -138,13 +162,13 @@ rm -rf trace/*
 
 
 
-printf "{\"num_nodes\": 444239824, \"indptr_shape\": [444239825], \"indptr_dtype\": \"int64\", \"indices_shape\": [14244350944], \"indices_dtype\": \"int64\", \"features_shape\": [444239824, 256], \"features_dtype\": \"float32\", \"labels_shape\": [444239824, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_papers_extended-ginex/conf.json
+# printf "{\"num_nodes\": 444239824, \"indptr_shape\": [444239825], \"indptr_dtype\": \"int64\", \"indices_shape\": [14244350944], \"indices_dtype\": \"int64\", \"features_shape\": [444239824, 256], \"features_dtype\": \"float32\", \"labels_shape\": [444239824, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_papers_extended-ginex/conf.json
 
-printf "{\"num_nodes\": 220412610, \"indptr_shape\": [220412611], \"indptr_dtype\": \"int64\", \"indices_shape\": [20243659298], \"indices_dtype\": \"int64\", \"features_shape\": [220412610, 256], \"features_dtype\": \"float32\", \"labels_shape\": [220412610, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_products_extended-ginex/conf.json
+# printf "{\"num_nodes\": 220412610, \"indptr_shape\": [220412611], \"indptr_dtype\": \"int64\", \"indices_shape\": [20243659298], \"indices_dtype\": \"int64\", \"features_shape\": [220412610, 256], \"features_dtype\": \"float32\", \"labels_shape\": [220412610, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/ogbn_products_extended-ginex/conf.json
 
-printf "{\"num_nodes\": 262433464, \"indptr_shape\": [262433465], \"indptr_dtype\": \"int64\", \"indices_shape\": [15482422866], \"indices_dtype\": \"int64\", \"features_shape\": [262433464, 256], \"features_dtype\": \"float32\", \"labels_shape\": [262433464, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/friendster_extended-ginex/conf.json
+# printf "{\"num_nodes\": 262433464, \"indptr_shape\": [262433465], \"indptr_dtype\": \"int64\", \"indices_shape\": [15482422866], \"indices_dtype\": \"int64\", \"features_shape\": [262433464, 256], \"features_dtype\": \"float32\", \"labels_shape\": [262433464, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/friendster_extended-ginex/conf.json
 
-printf "{\"num_nodes\": 249913380, \"indptr_shape\": [249913381], \"indptr_dtype\": \"int64\", \"indices_shape\": [14634518930], \"indices_dtype\": \"int64\", \"features_shape\": [249913380, 256], \"features_dtype\": \"float32\", \"labels_shape\": [249913380, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/twitter_extended_6-ginex/conf.json
+# printf "{\"num_nodes\": 249913380, \"indptr_shape\": [249913381], \"indptr_dtype\": \"int64\", \"indices_shape\": [14634518930], \"indices_dtype\": \"int64\", \"features_shape\": [249913380, 256], \"features_dtype\": \"float32\", \"labels_shape\": [249913380, 1], \"labels_dtype\": \"float32\", \"num_classes\": 172}\n" > dataset/twitter_extended_6-ginex/conf.json
 
 # cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_papers_extended --sizes 25,10 --sb-size 16000 --batch-size 250 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 8 --zstd > results/thesis/ginex_all/papers_16000_250_k_8.out
 # cgexec -g memory:64gb python3 -W ignore run_ginex.py --dataset ogbn_papers_extended --sizes 25,10 --sb-size 16000 --batch-size 500 --neigh-cache-size 45000000000 --feature-cache-size 50000000000 --num-epochs 1 --verbose --train-only --khop 8 --zstd > results/thesis/ginex_all/papers_16000_500_k_8.out

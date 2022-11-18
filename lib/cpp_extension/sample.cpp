@@ -289,8 +289,9 @@ sample_adj_ginex_compression(torch::Tensor rowptr, std::string col_file, torch::
   free(neighbor_buffer);
   close(col_fd);
 
-  // float hit_ratio = (float) num_hit / (float) (num_hit + num_miss);
+  float hit_ratio = (float) num_hit / (float) (num_hit + num_miss);
   // printf("arcmsh::num_hit = %d, num_miss = %d, hit_ratio = %f\n", num_hit, num_miss, hit_ratio);
+  printf("%f\n", hit_ratio);
 
   return std::make_tuple(out_rowptr, out_col, out_n_id, out_e_id, num_hit, num_miss);
 }
@@ -528,8 +529,9 @@ sample_adj_ginex(torch::Tensor rowptr, std::string col_file, torch::Tensor idx,
   free(neighbor_buffer);
   close(col_fd);
 
-  // float hit_ratio = (float) num_hit / (float) (num_hit + num_miss);
+  float hit_ratio = (float) num_hit / (float) (num_hit + num_miss);
   // printf("arcmsh::num_hit = %d, num_miss = %d, hit_ratio = %f\n", num_hit, num_miss, hit_ratio);
+  printf("%f\n", hit_ratio);
 
   return std::make_tuple(out_rowptr, out_col, out_n_id, out_e_id, num_hit, num_miss);
 }
