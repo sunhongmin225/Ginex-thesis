@@ -5,9 +5,9 @@ Done!
 Running Epoch 0...
 Running 0th superbatch of total 3 superbatches
 Step 1: Superbatch Sample
-[run_ginex.py] sb_sample time = 269.7276961803436
+[run_ginex.py] sb_sample time = 268.1804006099701
 Step 1: Done
-inspect_time = 288516.90625
+inspect_time = 286080.5625
 Running 1th superbatch of total 3 superbatches
 Step 1: Superbatch Sample
 Loading ids...
