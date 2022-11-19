@@ -26,9 +26,9 @@ def save_neighbor_cache():
     score = dataset.get_score()
     rowptr, col = dataset.get_adj_mat()
     num_nodes = dataset.num_nodes
-    lz4_comp_ratio = 1.36
+    lz4_comp_ratio = 1.30
     nctbl_size_in_bytes = num_nodes * 3 * 8
-    nc_size_in_bytes = math.floor((args.neigh_cache_size - nctbl_size_in_bytes) * 1.36) + num_nodes * 8
+    nc_size_in_bytes = math.floor((args.neigh_cache_size - nctbl_size_in_bytes) * lz4_comp_ratio) + num_nodes * 8
     metadata_filename = str(dataset_path) + '/metadata_size_' + str(args.neigh_cache_size) + '.txt'
     cache_filename = str(dataset_path) + '/nc_size_' + str(args.neigh_cache_size) + '.dat.lz4'
     cache_tbl_filename = str(dataset_path) + '/nctbl_size_' + str(args.neigh_cache_size) + '_lz4.dat'
